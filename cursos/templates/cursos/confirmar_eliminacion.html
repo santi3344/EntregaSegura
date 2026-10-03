@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar eliminación | EntregaSegura</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #f4f7fb; color: #1f2937; font-family: "Segoe UI", Arial, sans-serif; }
+        .card { width: min(100%, 520px); padding: 32px; background: white; border: 1px solid #e5e7eb; border-radius: 18px; box-shadow: 0 12px 36px rgba(15, 31, 61, .09); }
+        h1 { margin-top: 0; font-size: 24px; }
+        p { line-height: 1.6; color: #64748b; }
+        .actions { display: flex; gap: 12px; margin-top: 26px; }
+        .button { display: inline-block; border: 0; border-radius: 9px; padding: 11px 16px; text-decoration: none; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .danger { background: #dc2626; color: white; }
+        .cancel { background: #eef2f7; color: #334155; }
+    </style>
+</head>
+<body>
+    <main class="card">
+        <h1>Eliminar {{ tipo }}</h1>
+        <p>¿Seguro que deseas eliminar <strong>{{ objeto }}</strong>? Esta acción no se puede deshacer.{% if tipo == 'curso' %} También se eliminarán sus grupos asociados.{% endif %}</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="actions">
+                <button class="button danger" type="submit">Sí, eliminar</button>
+                <a class="button cancel" href="{{ cancel_url }}">Cancelar</a>
+            </div>
+        </form>
+    </main>
+</body>
+</html>
