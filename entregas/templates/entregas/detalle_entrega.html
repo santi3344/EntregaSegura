@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Detalle de entrega</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 32px; }
+        .card { max-width: 900px; margin: 0 auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        .meta { color: #4b5563; margin-bottom: 12px; }
+        .badge { display: inline-block; background: #e0f2fe; color: #0f172a; padding: 6px 10px; border-radius: 999px; margin-bottom: 12px; }
+        a { color: #2563eb; text-decoration: none; }
+        ul { padding-left: 18px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>{{ entrega.actividad.titulo }}</h1>
+        <div class="badge">{{ entrega.estado }}</div>
+        <div class="meta"><strong>Curso:</strong> {{ entrega.actividad.curso.nombre }}</div>
+        <div class="meta"><strong>Fecha de entrega:</strong> {{ entrega.fecha_entrega|date:'d/m/Y H:i' }}</div>
+        <p><strong>Archivo original:</strong> <a href="{{ entrega.archivo.url }}" target="_blank">Abrir archivo</a></p>
+        <p><strong>Repositorio GitHub:</strong>
+            {% if entrega.repositorio_github %}
+                <a href="{{ entrega.repositorio_github }}" target="_blank" rel="noopener">{{ entrega.repositorio_github }}</a>
+            {% else %}No registrado{% endif %}
+        </p>
+
+        {% if entrega.observaciones %}
+            <p><strong>Observaciones:</strong> {{ entrega.observaciones }}</p>
+        {% endif %}
+
+        <h3>Evidencia de validaciones</h3>
+        <ul>
+            {% for evidencia in evidencias %}
+                <li>
+                    <strong>{{ evidencia.get_capa_display }}:</strong>
+                    {% if evidencia.aprobado %}Aprobada{% else %}Rechazada{% endif %}
+                    — {{ evidencia.mensaje }}
+                    <small>({{ evidencia.comprobado_en|date:'d/m/Y H:i' }})</small>
+                </li>
+            {% empty %}
+                <li>Aún no hay validaciones registradas.</li>
+            {% endfor %}
+        </ul>
+
+        <p><a href="{% url 'entregas_estudiante:reentregar_entrega' entrega.pk %}">Hacer reentrega</a></p>
+        <p><a href="{% url 'entregas_estudiante:mis_entregas' %}">Volver</a></p>
+
+        {% if versiones %}
+            <h3>Versiones registradas</h3>
+            <ul>
+                {% for version in versiones %}
+                    <li>
+                        {{ version.fecha_subida|date:'d/m/Y H:i' }} - {{ version.estado }}
+                        {% if version.repositorio_github %} - <a href="{{ version.repositorio_github }}" target="_blank" rel="noopener">Repositorio GitHub</a>{% endif %}
+                        {% if version.comentario %} - {{ version.comentario }}{% endif %}
+                        <a href="{{ version.archivo.url }}" target="_blank">Ver archivo</a>
+                        <ul>
+                            {% for evidencia in version.evidencias.all %}
+                                <li>{{ evidencia.get_capa_display }}:
+                                    {% if evidencia.aprobado %}Aprobada{% else %}Rechazada{% endif %}
+                                    — {{ evidencia.mensaje }}</li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reentrega</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 32px; }
+        .card { max-width: 700px; margin: 0 auto; background: white; padding: 28px; border-radius: 14px; box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        form { display: grid; gap: 16px; }
+        input, textarea, button { font: inherit; }
+        input, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; }
+        button { background: #2563eb; color: white; border: none; padding: 12px 16px; border-radius: 8px; cursor: pointer; }
+        a { color: #2563eb; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Registrar reentrega</h1>
+        <p><strong>Actividad:</strong> {{ entrega.actividad.titulo }}</p>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div role="alert">{{ form.non_field_errors }}</div>
+            {% endif %}
+            {% for field in form %}
+                <div>
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.errors %}<small>{{ field.errors }}</small>{% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit">Guardar reentrega</button>
+        </form>
+        <p><a href="{% url 'entregas_estudiante:detalle_entrega' entrega.pk %}">Volver</a></p>
+    </div>
+</body>
+</html>

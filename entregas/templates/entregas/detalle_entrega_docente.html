@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Detalle de entrega docente</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 32px; }
+        .card { max-width: 900px; margin: 0 auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        .meta { color: #4b5563; margin-bottom: 12px; }
+        .badge { display: inline-block; background: #dbeafe; color: #1e3a8a; padding: 6px 10px; border-radius: 999px; margin-bottom: 12px; }
+        a { color: #2563eb; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>{{ entrega.actividad.titulo }}</h1>
+        <div class="badge">{{ entrega.estado }}</div>
+        <div class="meta"><strong>Estudiante:</strong> {{ entrega.estudiante.usuario.username }}</div>
+        <div class="meta"><strong>Curso:</strong> {{ entrega.actividad.curso.nombre }}</div>
+        <div class="meta"><strong>Fecha de entrega:</strong> {{ entrega.fecha_entrega|date:'d/m/Y H:i' }}</div>
+        <p><strong>Archivo:</strong> <a href="{{ entrega.archivo.url }}" target="_blank">Abrir archivo</a></p>
+        <p><strong>Repositorio GitHub:</strong>
+            {% if entrega.repositorio_github %}
+                <a href="{{ entrega.repositorio_github }}" target="_blank" rel="noopener">{{ entrega.repositorio_github }}</a>
+            {% else %}No registrado{% endif %}
+        </p>
+        {% if entrega.observaciones %}
+            <p><strong>Observaciones del estudiante:</strong> {{ entrega.observaciones }}</p>
+        {% endif %}
+        <h3>Evidencia de validaciones</h3>
+        <ul>
+            {% for evidencia in entrega.evidencias.all %}
+                <li><strong>{{ evidencia.get_capa_display }}:</strong>
+                    {% if evidencia.aprobado %}Aprobada{% else %}Rechazada{% endif %}
+                    — {{ evidencia.mensaje }}
+                    <small>({{ evidencia.comprobado_en|date:'d/m/Y H:i' }})</small></li>
+            {% empty %}
+                <li>No hay evidencia registrada.</li>
+            {% endfor %}
+        </ul>
+        <h3>Versiones de reentrega</h3>
+        <ul>
+            {% for version in entrega.versiones.all %}
+                <li>{{ version.fecha_subida|date:'d/m/Y H:i' }} —
+                    <a href="{{ version.archivo.url }}" target="_blank">Abrir versión</a>
+                    {% if version.comentario %} — {{ version.comentario }}{% endif %}</li>
+            {% empty %}
+                <li>No hay reentregas.</li>
+            {% endfor %}
+        </ul>
+        <p><a href="{% url 'entregas_docente:lista_entregas_docente' %}">Volver</a></p>
+    </div>
+</body>
+</html>

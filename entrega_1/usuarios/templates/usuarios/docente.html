@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Panel Docente | EntregaSegura</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f7fb;
+            color: #1f2937;
+        }
+
+        /* BARRA LATERAL */
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100vh;
+            background: linear-gradient(180deg, #0f1f3d, #162b52);
+            color: white;
+            padding: 25px 18px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px 35px;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: #3b82f6;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .logo h1 {
+            font-size: 20px;
+        }
+
+        .logo span {
+            color: #60a5fa;
+        }
+
+        .menu-title {
+            font-size: 11px;
+            color: #94a3b8;
+            margin: 15px 12px 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .menu a {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 13px 14px;
+            margin-bottom: 6px;
+            border-radius: 10px;
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .menu a:hover,
+        .menu .activo {
+            background: #2563eb;
+            color: white;
+        }
+
+        .menu-icon {
+            font-size: 18px;
+            width: 25px;
+        }
+
+        /* CONTENIDO */
+
+        .main {
+            margin-left: 250px;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            height: 75px;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 35px;
+        }
+
+        .topbar h2 {
+            font-size: 20px;
+        }
+
+        .perfil {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 42px;
+            height: 42px;
+            background: #dbeafe;
+            color: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .perfil-info strong {
+            display: block;
+            font-size: 14px;
+        }
+
+        .perfil-info span {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        /* CONTENEDOR */
+
+        .contenido {
+            padding: 35px;
+        }
+
+        .bienvenida {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 30px;
+            border-radius: 18px;
+            margin-bottom: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bienvenida::after {
+            content: "📚";
+            position: absolute;
+            right: 45px;
+            top: 20px;
+            font-size: 90px;
+            opacity: 0.15;
+        }
+
+        .bienvenida h1 {
+            font-size: 27px;
+            margin-bottom: 8px;
+        }
+
+        .bienvenida p {
+            color: #dbeafe;
+            font-size: 15px;
+        }
+
+        .rol {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 6px 13px;
+            background: rgba(255,255,255,0.18);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* ESTADISTICAS */
+
+        .estadisticas {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat {
+            background: white;
+            padding: 22px;
+            border-radius: 15px;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 17px;
+        }
+
+        .stat-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 13px;
+            background: #eff6ff;
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .stat strong {
+            font-size: 24px;
+            display: block;
+        }
+
+        .stat span {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        /* TARJETAS */
+
+        .titulo-seccion {
+            margin-bottom: 17px;
+            font-size: 19px;
+        }
+
+        .tarjetas {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 22px;
+        }
+
+        .tarjeta {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 25px;
+            transition: 0.3s;
+        }
+
+        .tarjeta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        }
+
+        .tarjeta-icon {
+            width: 48px;
+            height: 48px;
+            background: #eff6ff;
+            color: #2563eb;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 17px;
+        }
+
+        .tarjeta h3 {
+            margin-bottom: 8px;
+        }
+
+        .tarjeta p {
+            color: #6b7280;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .boton {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            padding: 10px 17px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .boton:hover {
+            background: #1d4ed8;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 850px) {
+
+            .sidebar {
+                width: 70px;
+            }
+
+            .logo h1,
+            .menu-title,
+            .menu a span {
+                display: none;
+            }
+
+            .logo {
+                justify-content: center;
+            }
+
+            .main {
+                margin-left: 70px;
+            }
+
+            .estadisticas {
+                grid-template-columns: 1fr;
+            }
+
+            .tarjetas {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- BARRA LATERAL -->
+
+<aside class="sidebar">
+
+    <div class="logo">
+        <div class="logo-icon">✓</div>
+        <h1>Entrega<span>Segura</span></h1>
+    </div>
+
+    <div class="menu-title">Principal</div>
+
+    <nav class="menu">
+
+        <a href="#" class="activo">
+            <div class="menu-icon">▦</div>
+            <span>Panel principal</span>
+        </a>
+
+        <a href="{% url 'cursos:lista_cursos' %}">
+            <div class="menu-icon">📚</div>
+            <span>Mis cursos</span>
+        </a>
+
+        <a href="{% url 'cursos:lista_grupos' %}">
+            <div class="menu-icon">👥</div>
+            <span>Mis grupos</span>
+        </a>
+
+        <a href="#">
+            <div class="menu-icon">📄</div>
+            <span>Entregas</span>
+        </a>
+
+        <div class="menu-title">Cuenta</div>
+
+        <a href="#">
+            <div class="menu-icon">⚙</div>
+            <span>Configuración</span>
+        </a>
+
+    </nav>
+
+</aside>
+
+
+<!-- CONTENIDO PRINCIPAL -->
+
+<main class="main">
+
+    <header class="topbar">
+
+        <h2>Panel docente</h2>
+
+        <div class="perfil">
+
+            <div class="avatar">
+                {{ request.user.username|slice:":1"|upper }}
+            </div>
+
+            <div class="perfil-info">
+                <strong>{{ request.user.username }}</strong>
+                <span>Docente</span>
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <section class="contenido">
+
+        <!-- BIENVENIDA -->
+
+        <div class="bienvenida">
+
+            <h1>¡Bienvenido, {{ request.user.username }}! 👋</h1>
+
+            <p>
+                Administra tus cursos, grupos y entregas académicas
+                desde un solo lugar.
+            </p>
+
+            <span class="rol">DOCENTE</span>
+
+        </div>
+
+
+        <!-- ESTADISTICAS -->
+
+        <div class="estadisticas">
+
+            <div class="stat">
+
+                <div class="stat-icon">📚</div>
+
+                <div>
+                    <strong>{{ total_cursos }}</strong>
+                    <span>Cursos</span>
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div class="stat-icon">👥</div>
+
+                <div>
+                    <strong>{{ total_grupos }}</strong>
+                    <span>Grupos</span>
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div class="stat-icon">📄</div>
+
+                <div>
+                    <strong>0</strong>
+                    <span>Entregas pendientes</span>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- OPCIONES -->
+
+        <h2 class="titulo-seccion">Gestión académica</h2>
+
+        <div class="tarjetas">
+
+            <div class="tarjeta">
+
+                <div class="tarjeta-icon">📚</div>
+
+                <h3>Gestionar cursos</h3>
+
+                <p>
+                    Crea, consulta y administra los cursos
+                    que tienes asignados.
+                </p>
+
+                <a href="{% url 'cursos:lista_cursos' %}" class="boton">
+                    Administrar cursos →
+                </a>
+
+            </div>
+
+
+            <div class="tarjeta">
+
+                <div class="tarjeta-icon">👥</div>
+
+                <h3>Gestionar grupos</h3>
+
+                <p>
+                    Consulta los grupos y estudiantes
+                    asociados a tus cursos.
+                </p>
+
+                <a href="{% url 'cursos:lista_grupos' %}" class="boton">
+                    Administrar grupos →
+                </a>
+
+            </div>
+
+
+            <div class="tarjeta">
+
+                <div class="tarjeta-icon">📄</div>
+
+                <h3>Revisar entregas</h3>
+
+                <p>
+                    Consulta las entregas realizadas por
+                    los estudiantes y valida sus archivos.
+                </p>
+
+                <a href="#" class="boton">
+                    Ver entregas →
+                </a>
+
+            </div>
+
+
+            <div class="tarjeta">
+
+                <div class="tarjeta-icon">✓</div>
+
+                <h3>Validaciones</h3>
+
+                <p>
+                    Revisa y valida las actividades
+                    entregadas por los estudiantes.
+                </p>
+
+                <a href="#" class="boton">
+                    Revisar →
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+</body>
+</html>

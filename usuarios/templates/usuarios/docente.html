@@ -111,9 +111,48 @@
         }
 
         .perfil {
+            position: relative;
+        }
+
+        .perfil-trigger {
             display: flex;
             align-items: center;
             gap: 12px;
+            cursor: pointer;
+            list-style: none;
+        }
+
+        .perfil-trigger::-webkit-details-marker {
+            display: none;
+        }
+
+        .perfil-menu {
+            position: absolute;
+            z-index: 10;
+            top: calc(100% + 12px);
+            right: 0;
+            min-width: 180px;
+            padding: 7px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.15);
+        }
+
+        .perfil-menu a {
+            display: block;
+            padding: 10px 12px;
+            border-radius: 7px;
+            color: #b91c1c;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .perfil-menu a:hover,
+        .perfil-menu a:focus {
+            background: #fef2f2;
+            outline: none;
         }
 
         .avatar {
@@ -352,7 +391,7 @@
             <span>Mis grupos</span>
         </a>
 
-        <a href="#">
+        <a href="{% url 'entregas_docente:lista_entregas_docente' %}">
             <div class="menu-icon">📄</div>
             <span>Entregas</span>
         </a>
@@ -377,18 +416,20 @@
 
         <h2>Panel docente</h2>
 
-        <div class="perfil">
-
-            <div class="avatar">
-                {{ request.user.username|slice:":1"|upper }}
+        <details class="perfil">
+            <summary class="perfil-trigger" aria-label="Abrir opciones del perfil">
+                <div class="avatar">
+                    {{ request.user.username|slice:":1"|upper }}
+                </div>
+                <div class="perfil-info">
+                    <strong>{{ request.user.username }}</strong>
+                    <span>Docente</span>
+                </div>
+            </summary>
+            <div class="perfil-menu">
+                <a href="{% url 'logout' %}">↪ Cerrar sesión</a>
             </div>
-
-            <div class="perfil-info">
-                <strong>{{ request.user.username }}</strong>
-                <span>Docente</span>
-            </div>
-
-        </div>
+        </details>
 
     </header>
 
@@ -506,7 +547,7 @@
                     los estudiantes y valida sus archivos.
                 </p>
 
-                <a href="#" class="boton">
+                <a href="{% url 'entregas_docente:lista_entregas_docente' %}" class="boton">
                     Ver entregas →
                 </a>
 

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar correo | EntregaSegura</title>
+    <style>
+        * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+        body { min-height: 100vh; margin: 0; padding: 24px; display: grid; place-items: center; background: linear-gradient(135deg, #0f172a, #1e3a8a, #2563eb); }
+        .card { width: min(460px, 100%); padding: 36px; background: white; border-radius: 20px; box-shadow: 0 20px 50px #0005; }
+        h1 { margin: 0 0 10px; color: #1e3a8a; font-size: 27px; }
+        p { color: #64748b; line-height: 1.5; }
+        .email { color: #1e293b; font-weight: 700; overflow-wrap: anywhere; }
+        label { display: block; margin: 24px 0 8px; color: #1e293b; font-weight: 700; }
+        input { width: 100%; padding: 14px; border: 1px solid #cbd5e1; border-radius: 9px; font-size: 22px; letter-spacing: 8px; text-align: center; }
+        button { width: 100%; margin-top: 18px; padding: 13px; border: 0; border-radius: 9px; background: #2563eb; color: white; font-size: 16px; font-weight: 700; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
+        .error { margin: 18px 0; padding: 12px; border-radius: 8px; background: #fee2e2; color: #b91c1c; line-height: 1.5; }
+        .back { display: block; margin-top: 20px; text-align: center; color: #2563eb; text-decoration: none; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <main class="card">
+        {% if expirado %}
+            <h1>El código venció</h1>
+            <p>Por seguridad, los códigos duran 10 minutos. Inicia un nuevo registro para solicitar otro.</p>
+            <a class="back" href="{% url 'registro_docente' %}">Crear cuenta nuevamente</a>
+        {% elif bloqueado %}
+            <h1>Verificación bloqueada</h1>
+            <p>Se alcanzó el máximo de intentos. Inicia el registro nuevamente para recibir un nuevo código.</p>
+            <a class="back" href="{% url 'registro_docente' %}">Crear cuenta nuevamente</a>
+        {% else %}
+            <h1>Verifica tu correo</h1>
+            <p>Ingresa el código de seis dígitos enviado a:</p>
+            <p class="email">{{ correo }}</p>
+            <p>El código vence en 10 minutos. En modo local, revisa la terminal donde se ejecuta Django.</p>
+            {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
+            <form method="post">
+                {% csrf_token %}
+                <label for="codigo">Código de verificación</label>
+                <input id="codigo" name="codigo" type="text" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="one-time-code" required autofocus>
+                <button type="submit">Verificar y crear cuenta</button>
+            </form>
+            <a class="back" href="{% url 'registro_docente' %}">Cancelar y volver</a>
+        {% endif %}
+    </main>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Entregas del docente</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 32px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn { background: #2563eb; color: white; padding: 10px 16px; border-radius: 8px; text-decoration: none; }
+        .card { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border-bottom: 1px solid #e5e7eb; padding: 12px; text-align: left; }
+        a { color: #2563eb; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Entregas académicas</h1>
+            <a class="btn" href="{% url 'entregas_docente:crear_actividad' %}">Nueva actividad</a>
+        </div>
+
+        <div class="card">
+            <h2>Actividades creadas</h2>
+            {% if actividades %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Actividad</th>
+                            <th>Curso</th>
+                            <th>Fecha límite</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for actividad in actividades %}
+                        <tr>
+                            <td>{{ actividad.titulo }}</td>
+                            <td>{{ actividad.curso.nombre }}</td>
+                            <td>{{ actividad.fecha_limite|date:'d/m/Y H:i' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>Aún no has creado actividades para este curso.</p>
+            {% endif %}
+        </div>
+
+        <div class="card" style="margin-top: 24px;">
+            <h2>Entregas registradas</h2>
+            {% if entregas %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Estudiante</th>
+                            <th>Actividad</th>
+                            <th>Curso</th>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entrega in entregas %}
+                        <tr>
+                            <td>{{ entrega.estudiante.usuario.username }}</td>
+                            <td>{{ entrega.actividad.titulo }}</td>
+                            <td>{{ entrega.actividad.curso.nombre }}</td>
+                            <td>{{ entrega.estado }}</td>
+                            <td>{{ entrega.fecha_entrega|date:'d/m/Y H:i' }}</td>
+                            <td><a href="{% url 'entregas_docente:detalle_entrega_docente' entrega.pk %}">Ver</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>Aún no hay entregas registradas.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

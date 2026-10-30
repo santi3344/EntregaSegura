@@ -2,14 +2,33 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>EntregaSegura</title>
+    <title>EntregaSegura - Entrega 2</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 32px; }
+        .card { max-width: 760px; margin: 0 auto; background: white; padding: 28px; border-radius: 14px; box-shadow: 0 10px 20px rgba(0,0,0,.08); }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 0; list-style: none; }
+        .grid li { padding: 14px; background: #eff6ff; border-radius: 8px; }
+        a { color: #2563eb; }
+    </style>
 </head>
 
 <body>
 
     <h1>Bienvenido a EntregaSegura</h1>
 
-    <p>Has iniciado sesión correctamente.</p>
+    <p>Has iniciado sesión correctamente. Estos controles están disponibles en cada entrega:</p>
+    <ul class="grid">
+        <li><strong>Carga de archivos</strong><br>PDF, DOC/DOCX y comprimidos hasta 10 MB.</li>
+        <li><strong>Cuatro validaciones</strong><br>Archivo, integridad, metadatos y GitHub.</li>
+        <li><strong>GitHub automático</strong><br>Se comprueba que el repositorio exista y sea público.</li>
+        <li><strong>Reentregas versionadas</strong><br>Cada versión conserva archivo, fecha, comentario y hash.</li>
+    </ul>
+    {% if user.perfil.rol == 'ESTUDIANTE' %}
+        <p><a href="{% url 'entregas_estudiante:mis_entregas' %}">Ir a mis entregas</a></p>
+    {% endif %}
+    {% if user.perfil.rol == 'DOCENTE' %}
+        <p><a href="{% url 'entregas_docente:lista_entregas_docente' %}">Ir a entregas del docente</a></p>
+    {% endif %}
 
 </body>
 </html>

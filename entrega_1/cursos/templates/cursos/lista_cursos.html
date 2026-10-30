@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis cursos | EntregaSegura</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f4f7fb; color: #1f2937; font-family: "Segoe UI", Arial, sans-serif; }
+        header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px max(22px, calc((100% - 1120px) / 2)); background: white; border-bottom: 1px solid #e5e7eb; }
+        header a, .link { color: #2563eb; text-decoration: none; font-weight: 600; }
+        main { width: min(1120px, calc(100% - 36px)); margin: 34px auto; }
+        .heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+        h1 { margin: 0 0 6px; font-size: 28px; }
+        .muted { color: #64748b; }
+        .layout { display: grid; grid-template-columns: minmax(250px, 340px) 1fr; gap: 22px; align-items: start; }
+        .card { background: white; border: 1px solid #e5e7eb; border-radius: 15px; padding: 22px; }
+        h2 { margin: 0 0 16px; font-size: 18px; }
+        label { display: block; margin: 14px 0 6px; font-size: 14px; font-weight: 600; }
+        input, textarea { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+        input:focus, textarea:focus { outline: 3px solid #dbeafe; border-color: #2563eb; }
+        .button { display: inline-block; border: 0; border-radius: 8px; padding: 10px 14px; background: #2563eb; color: white; text-decoration: none; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .secondary { background: #eef2f7; color: #334155; }
+        .danger { background: #fee2e2; color: #b91c1c; }
+        .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .actions form { margin: 0; }
+        .course { padding: 17px 0; border-bottom: 1px solid #e5e7eb; }
+        .course:first-of-type { padding-top: 0; }
+        .course:last-child { border-bottom: 0; padding-bottom: 0; }
+        .course h3 { margin: 0 0 6px; font-size: 17px; }
+        .course p { margin: 0 0 13px; white-space: pre-wrap; line-height: 1.5; }
+        .messages { margin: 0 0 18px; padding: 12px 15px; border-radius: 9px; background: #dcfce7; color: #166534; }
+        .errors { margin-top: 10px; color: #b91c1c; font-size: 13px; }
+        .errors ul { margin: 4px 0; padding-left: 18px; }
+        .empty { padding: 28px 0; text-align: center; color: #64748b; }
+        @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } .heading { align-items: flex-start; flex-direction: column; } header { padding: 16px 18px; } }
+    </style>
+</head>
+<body>
+    <header>
+        <strong>Entrega<span style="color:#2563eb">Segura</span></strong>
+        <a href="{% url 'panel_docente' %}">← Volver al panel</a>
+    </header>
+    <main>
+        <div class="heading">
+            <div><h1>Mis cursos</h1><div class="muted">Crea y administra únicamente tus cursos.</div></div>
+            <a class="button secondary" href="{% url 'cursos:lista_grupos' %}">Administrar grupos</a>
+        </div>
+        {% if messages %}{% for message in messages %}<div class="messages">{{ message }}</div>{% endfor %}{% endif %}
+        <div class="layout">
+            <section class="card">
+                <h2>{% if curso_edicion %}Editar curso{% else %}Crear curso{% endif %}</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<div class="errors">{{ field.errors }}</div>{% endif %}
+                    {% endfor %}
+                    {% if form.non_field_errors %}<div class="errors">{{ form.non_field_errors }}</div>{% endif %}
+                    <div class="actions" style="margin-top:18px">
+                        <button class="button" type="submit">{% if curso_edicion %}Guardar cambios{% else %}Crear curso{% endif %}</button>
+                        {% if curso_edicion %}<a class="button secondary" href="{% url 'cursos:lista_cursos' %}">Cancelar</a>{% endif %}
+                    </div>
+                </form>
+            </section>
+            <section class="card">
+                <h2>Cursos creados <span class="muted">({{ cursos|length }})</span></h2>
+                {% for curso in cursos %}
+                    <article class="course">
+                        <h3>{{ curso.nombre }}</h3>
+                        <p class="muted">{{ curso.descripcion|default:'Sin descripción' }}</p>
+                        <p class="muted">{{ curso.total_grupos }} grupo{{ curso.total_grupos|pluralize }}</p>
+                        <div class="actions">
+                            <a class="button secondary" href="{% url 'cursos:editar_curso' curso.pk %}">Editar</a>
+                            <a class="button secondary" href="{% url 'cursos:lista_grupos' %}?curso={{ curso.pk }}">Ver grupos</a>
+                            <a class="button danger" href="{% url 'cursos:eliminar_curso' curso.pk %}">Eliminar</a>
+                        </div>
+                    </article>
+                {% empty %}
+                    <div class="empty">Todavía no has creado cursos.</div>
+                {% endfor %}
+            </section>
+        </div>
+    </main>
+</body>
+</html>

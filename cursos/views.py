@@ -30,7 +30,7 @@ def docente_required(view_func):
 @docente_required
 def lista_cursos(request):
 	curso_edicion = None
-	form = CursoForm(request.POST if request.method == 'POST' else None)
+	form = CursoForm(request.POST if request.method == 'POST' else None, user=request.user)
 
 	if request.method == 'POST' and form.is_valid():
 		curso = form.save(commit=False)
@@ -52,7 +52,7 @@ def lista_cursos(request):
 @docente_required
 def editar_curso(request, pk):
 	curso = get_object_or_404(Curso, pk=pk, docente=request.user)
-	form = CursoForm(request.POST or None, instance=curso)
+	form = CursoForm(request.POST or None, instance=curso, user=request.user)
 
 	if request.method == 'POST' and form.is_valid():
 		form.save()

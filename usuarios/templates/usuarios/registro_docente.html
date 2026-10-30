@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear cuenta docente | EntregaSegura</title>
+    <style>
+        * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+        body { min-height: 100vh; margin: 0; padding: 24px; display: grid; place-items: center; background: linear-gradient(135deg, #0f172a, #1e3a8a, #2563eb); }
+        .card { width: min(520px, 100%); padding: 36px; background: white; border-radius: 20px; box-shadow: 0 20px 50px #0005; }
+        h1 { margin: 0 0 8px; color: #1e3a8a; font-size: 27px; }
+        .intro { margin: 0 0 24px; color: #64748b; line-height: 1.5; }
+        label { display: block; margin: 16px 0 7px; color: #1e293b; font-weight: 700; }
+        input { width: 100%; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 9px; font-size: 15px; }
+        input:focus { outline: 3px solid #2563eb30; border-color: #2563eb; }
+        .help { margin: 6px 0 0; color: #64748b; font-size: 12px; line-height: 1.5; }
+        .errors, .error { margin-top: 6px; color: #b91c1c; font-size: 13px; }
+        .error { margin: 0 0 16px; padding: 12px; border-radius: 8px; background: #fee2e2; }
+        .password-rules { margin: 5px 0 0; padding-left: 18px; color: #64748b; font-size: 12px; line-height: 1.5; }
+        button { width: 100%; margin-top: 24px; padding: 13px; border: 0; border-radius: 9px; background: #2563eb; color: white; font-size: 16px; font-weight: 700; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
+        .note { margin: 18px 0 0; padding: 12px; border-radius: 8px; background: #eff6ff; color: #1e40af; font-size: 13px; line-height: 1.5; }
+        .back { display: block; margin-top: 20px; text-align: center; color: #2563eb; text-decoration: none; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <main class="card">
+        <h1>Crear cuenta docente</h1>
+        <p class="intro">Verificaremos tu correo antes de activar la cuenta. El registro crea exclusivamente un perfil de docente.</p>
+
+        {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
+        {% if form.non_field_errors %}<div class="error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% for field in form %}
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text and field.name != 'password1' %}<p class="help">{{ field.help_text }}</p>{% endif %}
+                {% if field.errors %}<div class="errors">{{ field.errors }}</div>{% endif %}
+                {% if field.name == 'password1' %}
+                    <ul class="password-rules">
+                        <li>Usa una contraseña larga y difícil de adivinar.</li>
+                        <li>No uses una contraseña común ni solo números.</li>
+                    </ul>
+                    {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+                {% endif %}
+            {% endfor %}
+            <button type="submit">Enviar código de verificación</button>
+        </form>
+
+        <p class="note">El código vence en 10 minutos. En modo local de desarrollo, Django lo muestra en la terminal del servidor; para recibirlo en tu bandeja se debe configurar un servicio SMTP.</p>
+        <a class="back" href="{% url 'login' %}">← Volver al inicio de sesión</a>
+    </main>
+</body>
+</html>
