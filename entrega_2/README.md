@@ -10,6 +10,7 @@ segundo mes:
 - Pruebas automatizadas y reporte de validación.
 - Capturas específicas de cada control.
 - Informe académico en formato Word con referencias APA 7.
+- Modelo entidad-relación y diagrama de arquitectura en Excel.
 
 El proyecto ejecutable permanece también en la raíz del repositorio. Esta
 carpeta es una copia organizada para facilitar la revisión de la profesora.
