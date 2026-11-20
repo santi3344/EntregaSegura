@@ -29,6 +29,16 @@ urlpatterns = [
         views.gestionar_codigo_registro_docente,
         name='gestionar_codigo_registro_docente',
     ),
+    path(
+        'docente/estudiantes/crear/',
+        views.crear_estudiante,
+        name='crear_estudiante',
+    ),
+    path(
+        'cuenta/cambiar-password/',
+        views.cambiar_password,
+        name='cambiar_password',
+    ),
 
     # Página de inicio
     path(

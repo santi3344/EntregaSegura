@@ -56,6 +56,22 @@ class CodigoRegistroDocenteForm(forms.Form):
     )
 
 
+class CrearEstudianteForm(UserCreationForm):
+    first_name = forms.CharField(label='Nombre', max_length=150)
+    last_name = forms.CharField(label='Apellidos', max_length=150)
+    email = forms.EmailField(label='Correo electrónico', required=False)
+
+    class Meta:
+        model = User
+        fields = (
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+        )
+        labels = {'username': 'Nombre de usuario'}
+
+
     def clean_last_name(self):
         value = self.cleaned_data['last_name'].strip()
         if not value:

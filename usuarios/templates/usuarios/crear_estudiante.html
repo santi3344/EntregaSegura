@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear estudiante | EntregaSegura</title>
+    <style>
+        * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+        body { min-height: 100vh; margin: 0; padding: 24px; display: grid; place-items: center; background: #f1f5f9; }
+        .card { width: min(520px, 100%); padding: 36px; background: white; border-radius: 20px; box-shadow: 0 15px 40px #0f172a22; }
+        h1 { margin: 0 0 8px; color: #1e3a8a; }
+        .intro { color: #64748b; line-height: 1.5; }
+        label { display: block; margin: 16px 0 7px; color: #1e293b; font-weight: 700; }
+        input { width: 100%; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 9px; font-size: 15px; }
+        .errors { margin-top: 6px; color: #b91c1c; font-size: 13px; }
+        button { width: 100%; margin-top: 24px; padding: 13px; border: 0; border-radius: 9px; background: #2563eb; color: white; font-size: 16px; font-weight: 700; cursor: pointer; }
+        .back { display: block; margin-top: 20px; text-align: center; color: #2563eb; text-decoration: none; font-weight: 700; }
+        .success { padding: 12px; margin-bottom: 16px; border-radius: 8px; background: #dcfce7; color: #166534; }
+    </style>
+</head>
+<body>
+    <main class="card">
+        <h1>Crear estudiante</h1>
+        <p class="intro">Crea la cuenta y entrega al estudiante su usuario y contraseña temporal. Al iniciar sesión deberá cambiar la contraseña.</p>
+        {% for message in messages %}<div class="success">{{ message }}</div>{% endfor %}
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<div class="errors">{{ field.errors }}</div>{% endif %}
+            {% endfor %}
+            <button type="submit">Crear estudiante</button>
+        </form>
+        <a class="back" href="{% url 'panel_docente' %}">← Volver al panel docente</a>
+    </main>
+</body>
+</html>

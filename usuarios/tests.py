@@ -200,6 +200,100 @@ class RegistroDocenteVerificadoTests(TestCase):
 		self.assertEqual(len(mail.outbox), 1)
 
 
+class GestionEstudiantesTests(TestCase):
+	def setUp(self):
+		self.docente = User.objects.create_user(
+			username='docente_creador',
+			password='Clave-segura-123',
+		)
+		Perfil.objects.create(usuario=self.docente, rol='DOCENTE')
+		self.client.force_login(self.docente)
+
+	def datos_estudiante(self):
+		return {
+			'username': 'estudiante_nuevo',
+			'first_name': 'Estudiante',
+			'last_name': 'Nuevo',
+			'email': 'estudiante@example.com',
+			'password1': 'F0r-Student!Secure-99',
+			'password2': 'F0r-Student!Secure-99',
+		}
+
+	def test_docente_crea_estudiante_con_cambio_de_password_obligatorio(self):
+		respuesta = self.client.post(
+			reverse('crear_estudiante'),
+			self.datos_estudiante(),
+		)
+
+		self.assertRedirects(respuesta, reverse('crear_estudiante'))
+		estudiante = User.objects.get(username='estudiante_nuevo')
+		self.assertEqual(estudiante.perfil.rol, 'ESTUDIANTE')
+		self.assertTrue(estudiante.perfil.debe_cambiar_password)
+		self.assertTrue(estudiante.check_password('F0r-Student!Secure-99'))
+
+	def test_estudiante_debe_cambiar_password_antes_del_panel(self):
+		estudiante = User.objects.create_user(
+			username='estudiante_temporal',
+			password='F0r-Student!Secure-99',
+		)
+		Perfil.objects.create(
+			usuario=estudiante,
+			rol='ESTUDIANTE',
+			debe_cambiar_password=True,
+		)
+		self.client.logout()
+		respuesta = self.client.post(
+			reverse('login'),
+			{
+				'usuario': 'estudiante_temporal',
+				'password': 'F0r-Student!Secure-99',
+			},
+		)
+
+		self.assertRedirects(respuesta, reverse('cambiar_password'))
+
+	def test_estudiante_sin_cambio_puede_actualizar_password(self):
+		estudiante = User.objects.create_user(
+			username='estudiante_temporal',
+			password='F0r-Student!Secure-99',
+		)
+		Perfil.objects.create(
+			usuario=estudiante,
+			rol='ESTUDIANTE',
+			debe_cambiar_password=True,
+		)
+		self.client.force_login(estudiante)
+		respuesta = self.client.post(
+			reverse('cambiar_password'),
+			{
+				'old_password': 'F0r-Student!Secure-99',
+				'new_password1': 'Nueva!Clave-Estudiante-2026',
+				'new_password2': 'Nueva!Clave-Estudiante-2026',
+			},
+		)
+
+		self.assertRedirects(respuesta, reverse('panel_estudiante'))
+		estudiante.refresh_from_db()
+		self.assertFalse(estudiante.perfil.debe_cambiar_password)
+		self.assertTrue(
+			User.objects.get(pk=estudiante.pk).check_password(
+				'Nueva!Clave-Estudiante-2026'
+			)
+		)
+
+	def test_estudiante_no_puede_crear_otro_estudiante(self):
+		estudiante = User.objects.create_user(
+			username='estudiante_existente',
+			password='Clave-segura-123',
+		)
+		Perfil.objects.create(usuario=estudiante, rol='ESTUDIANTE')
+		self.client.force_login(estudiante)
+
+		respuesta = self.client.get(reverse('crear_estudiante'))
+
+		self.assertRedirects(respuesta, reverse('inicio'))
+
+
 @override_settings(
 	DOCENTE_REGISTRATION_CODE='',
 	EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',

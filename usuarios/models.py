@@ -19,6 +19,7 @@ class Perfil(models.Model):
         max_length=20,
         choices=ROLES
     )
+    debe_cambiar_password = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.usuario.username} - {self.rol}"

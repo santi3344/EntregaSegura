@@ -3,7 +3,8 @@ import secrets
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import User
@@ -16,7 +17,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 
 from cursos.models import Curso, Grupo
 
-from .forms import CodigoRegistroDocenteForm, RegistroDocenteForm
+from .forms import CodigoRegistroDocenteForm, CrearEstudianteForm, RegistroDocenteForm
 from .models import CodigoRegistroDocente, Perfil, RegistroDocentePendiente
 
 
@@ -254,10 +255,14 @@ def redireccionar_por_rol(usuario):
 
         # DOCENTE
         if perfil.rol == 'DOCENTE':
+            if perfil.debe_cambiar_password:
+                return redirect('cambiar_password')
             return redirect('panel_docente')
 
         # ESTUDIANTE
         elif perfil.rol == 'ESTUDIANTE':
+            if perfil.debe_cambiar_password:
+                return redirect('cambiar_password')
             return redirect('panel_estudiante')
 
     except Perfil.DoesNotExist:
@@ -266,6 +271,46 @@ def redireccionar_por_rol(usuario):
 
     # Si no tiene perfil
     return redirect('inicio')
+
+
+@login_required
+def crear_estudiante(request):
+    if not Perfil.objects.filter(usuario=request.user, rol='DOCENTE').exists():
+        return redirect('inicio')
+
+    form = CrearEstudianteForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        usuario = form.save()
+        Perfil.objects.create(
+            usuario=usuario,
+            rol='ESTUDIANTE',
+            debe_cambiar_password=True,
+        )
+        messages.success(
+            request,
+            'Estudiante creado. Entrégale su usuario y contraseña temporal.',
+        )
+        return redirect('crear_estudiante')
+
+    return render(request, 'usuarios/crear_estudiante.html', {'form': form})
+
+
+@login_required
+def cambiar_password(request):
+    perfil = Perfil.objects.filter(usuario=request.user).first()
+    if perfil is None or not perfil.debe_cambiar_password:
+        return redireccionar_por_rol(request.user)
+
+    form = PasswordChangeForm(request.user, request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        usuario = form.save()
+        perfil.debe_cambiar_password = False
+        perfil.save(update_fields=['debe_cambiar_password'])
+        update_session_auth_hash(request, usuario)
+        messages.success(request, 'Contraseña actualizada correctamente.')
+        return redireccionar_por_rol(usuario)
+
+    return render(request, 'usuarios/cambiar_password.html', {'form': form})
 
 
 # ==========================================
