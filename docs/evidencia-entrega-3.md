@@ -58,5 +58,7 @@ del servicio PostgreSQL.
 
 ## Pendientes no programables
 
-Quedan la aprobación institucional de la política de datos, la evidencia
-formal de una restauración de respaldo y la sustentación del proyecto.
+Quedan la firma de aprobación institucional de la política de datos, la
+evidencia formal de una restauración de respaldo y la sustentación del
+proyecto. La política está preparada para revisión y firma en
+`docs/politica-tratamiento-datos.md`.
