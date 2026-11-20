@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
@@ -6,6 +8,51 @@ from usuarios.models import Perfil
 
 from .forms import ActividadForm, EntregaForm, VersionEntregaForm
 from .models import Actividad, Entrega, VersionEntrega
+from .reporting import export_entregas_csv
+
+
+def _entregas_docente_context(request):
+    actividades = Actividad.objects.filter(
+        curso__docente=request.user
+    ).select_related('curso', 'creado_por').order_by('-creado_en')
+    entregas = Entrega.objects.filter(
+        actividad__curso__docente=request.user
+    ).select_related('actividad__curso', 'estudiante__usuario').prefetch_related(
+        'evidencias', 'versiones'
+    ).order_by('-fecha_entrega')
+    filtros = {
+        'curso': request.GET.get('curso', ''),
+        'actividad': request.GET.get('actividad', ''),
+        'estado': request.GET.get('estado', ''),
+        'estudiante': request.GET.get('estudiante', '').strip(),
+        'desde': request.GET.get('desde', ''),
+        'hasta': request.GET.get('hasta', ''),
+    }
+    if filtros['curso'].isdigit():
+        entregas = entregas.filter(actividad__curso_id=int(filtros['curso']))
+    if filtros['actividad'].isdigit():
+        entregas = entregas.filter(actividad_id=int(filtros['actividad']))
+    if filtros['estado'] in dict(Entrega.ESTADO_CHOICES):
+        entregas = entregas.filter(estado=filtros['estado'])
+    if filtros['estudiante']:
+        entregas = entregas.filter(
+            estudiante__usuario__username__icontains=filtros['estudiante']
+        )
+    for field, lookup in (('desde', 'gte'), ('hasta', 'lte')):
+        if filtros[field]:
+            try:
+                date_value = datetime.strptime(filtros[field], '%Y-%m-%d').date()
+            except ValueError:
+                filtros[field] = ''
+            else:
+                entregas = entregas.filter(**{f'fecha_entrega__date__{lookup}': date_value})
+    return {
+        'actividades': actividades,
+        'entregas': entregas,
+        'cursos_filtro': actividades.values_list('curso_id', 'curso__nombre').distinct(),
+        'filtros': filtros,
+        'estados': Entrega.ESTADO_CHOICES,
+    }
 from .validators import (
     raise_for_failed_validations,
     save_validation_evidence,
@@ -122,21 +169,24 @@ def reentregar_entrega(request, pk):
 @login_required
 @docente_required
 def lista_entregas_docente(request):
-    actividades = Actividad.objects.filter(
-        curso__docente=request.user
-    ).select_related('curso', 'creado_por').order_by('-creado_en')
-
-    entregas = Entrega.objects.filter(
-        actividad__curso__docente=request.user
-    ).select_related('actividad__curso', 'estudiante__usuario').order_by('-fecha_entrega')
+    context = _entregas_docente_context(request)
+    if request.GET.get('export') == 'csv':
+        return export_entregas_csv(context['entregas'])
 
     return render(
         request,
         'entregas/lista_entregas_docente.html',
-        {
-            'actividades': actividades,
-            'entregas': entregas,
-        }
+        context,
+    )
+
+
+@login_required
+@docente_required
+def reporte_entregas_docente(request):
+    return render(
+        request,
+        'entregas/reporte_entregas.html',
+        _entregas_docente_context(request),
     )
 
 
