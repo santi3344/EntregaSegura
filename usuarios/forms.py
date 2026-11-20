@@ -4,13 +4,28 @@ from django.contrib.auth.models import User
 
 
 class RegistroDocenteForm(UserCreationForm):
-    email = forms.EmailField(label='Correo electrónico')
+    email = forms.EmailField(
+        label='Correo electrónico',
+        required=False,
+    )
     first_name = forms.CharField(label='Nombre', max_length=150)
     last_name = forms.CharField(label='Apellidos', max_length=150)
+    codigo_docente = forms.CharField(
+        label='Código institucional docente',
+        max_length=128,
+        strip=False,
+        widget=forms.PasswordInput,
+    )
 
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name', 'email')
+        fields = (
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'codigo_docente',
+        )
         labels = {'username': 'Nombre de usuario'}
 
     def clean_username(self):
@@ -24,7 +39,9 @@ class RegistroDocenteForm(UserCreationForm):
         return username
 
     def clean_email(self):
-        email = self.cleaned_data['email'].strip()
+        email = self.cleaned_data.get('email', '').strip()
+        if not email:
+            return ''
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError('Este correo ya está registrado.')
         return email

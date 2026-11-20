@@ -24,6 +24,12 @@ urlpatterns = [
         name='verificar_registro_docente'
     ),
 
+    path(
+        'administracion/registro-docente/codigo/',
+        views.gestionar_codigo_registro_docente,
+        name='gestionar_codigo_registro_docente',
+    ),
+
     # Página de inicio
     path(
         'inicio/',

@@ -177,12 +177,6 @@
             </div>
         {% endif %}
 
-        {% if messages %}
-            {% for message in messages %}
-                <div class="success">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-
         <form method="POST" action="{% url 'login' %}">
 
             {% csrf_token %}
@@ -206,7 +200,13 @@
 
             </div>
 
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="success">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
 
+        
             <div class="form-group">
 
                 <label for="password">

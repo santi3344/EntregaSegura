@@ -1,5 +1,5 @@
-import secrets
 from datetime import timedelta
+import secrets
 
 from django.conf import settings
 from django.contrib import messages
@@ -9,6 +9,7 @@ from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
+from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -16,7 +17,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from cursos.models import Curso, Grupo
 
 from .forms import RegistroDocenteForm
-from .models import Perfil, RegistroDocentePendiente
+from .models import CodigoRegistroDocente, Perfil, RegistroDocentePendiente
 
 
 def enviar_codigo_verificacion(usuario, codigo):
@@ -101,47 +102,62 @@ def registro_docente(request):
 
     form = RegistroDocenteForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        RegistroDocentePendiente.objects.filter(
-            expira_en__lte=timezone.now(),
-        ).delete()
-        if RegistroDocentePendiente.objects.filter(
-            email__iexact=form.cleaned_data['email'],
-        ).exists():
+        codigo_proporcionado = form.cleaned_data['codigo_docente']
+        codigo_db = CodigoRegistroDocente.objects.filter(clave='docente').first()
+        codigo_valido = (
+            codigo_db is not None
+            and check_password(codigo_proporcionado, codigo_db.codigo_hash)
+        )
+        if codigo_db is None:
+            codigo_configurado = getattr(settings, 'DOCENTE_REGISTRATION_CODE', '')
+            codigo_valido = bool(codigo_configurado) and secrets.compare_digest(
+                codigo_proporcionado,
+                codigo_configurado,
+            )
+        if not codigo_valido:
             return render(request, 'usuarios/registro_docente.html', {
                 'form': form,
-                'error': (
-                    'Ya existe una verificación pendiente para ese correo. '
-                    'Usa el código enviado o espera a que venza.'
-                ),
+                'error': 'El código institucional docente no es válido.',
             })
-
-        codigo = f'{secrets.randbelow(1_000_000):06d}'
-        usuario = form.save(commit=False)
-        pendiente = RegistroDocentePendiente.objects.create(
-            username=usuario.username,
-            email=usuario.email,
-            first_name=usuario.first_name,
-            last_name=usuario.last_name,
-            password_hash=usuario.password,
-            codigo_hash=make_password(codigo),
-            expira_en=timezone.now() + timedelta(minutes=10),
-        )
 
         try:
-            enviar_codigo_verificacion(usuario, codigo)
-        except Exception:
-            pendiente.delete()
+            with transaction.atomic():
+                usuario = form.save(commit=False)
+                usuario.save()
+                Perfil.objects.create(usuario=usuario, rol='DOCENTE')
+        except IntegrityError:
             return render(request, 'usuarios/registro_docente.html', {
                 'form': form,
-                'error': (
-                    'No se pudo enviar el código. Verifica la configuración '
-                    'de SMS e inténtalo nuevamente.'
-                ),
+                'error': 'No se pudo completar el registro. Inténtalo nuevamente.',
             })
 
-        return redirect('verificar_registro_docente', registro_id=pendiente.pk)
+        messages.success(
+            request,
+            'Cuenta docente creada correctamente. Ya puedes iniciar sesión.',
+        )
+        return redirect('login')
 
     return render(request, 'usuarios/registro_docente.html', {'form': form})
+
+
+@login_required
+def gestionar_codigo_registro_docente(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden('Solo el personal administrador puede gestionar este código.')
+
+    codigo_generado = None
+    if request.method == 'POST':
+        codigo_generado = secrets.token_urlsafe(18)
+        CodigoRegistroDocente.objects.update_or_create(
+            clave='docente',
+            defaults={'codigo_hash': make_password(codigo_generado)},
+        )
+
+    return render(
+        request,
+        'usuarios/gestionar_codigo_docente.html',
+        {'codigo_generado': codigo_generado},
+    )
 
 
 def verificar_registro_docente(request, registro_id):
