@@ -18,7 +18,9 @@
         <div class="meta"><strong>Estudiante:</strong> {{ entrega.estudiante.usuario.username }}</div>
         <div class="meta"><strong>Curso:</strong> {{ entrega.actividad.curso.nombre }}</div>
         <div class="meta"><strong>Fecha de entrega:</strong> {{ entrega.fecha_entrega|date:'d/m/Y H:i' }}</div>
-        <p><strong>Archivo:</strong> <a href="{{ entrega.archivo.url }}" target="_blank">Abrir archivo</a></p>
+        <p><strong>Archivo:</strong>
+            <a href="{% url 'entregas_docente:descargar_entrega' entrega.pk %}">Descargar archivo</a>
+        </p>
         <p><strong>Repositorio GitHub:</strong>
             {% if entrega.repositorio_github %}
                 <a href="{{ entrega.repositorio_github }}" target="_blank" rel="noopener">{{ entrega.repositorio_github }}</a>
@@ -42,7 +44,7 @@
         <ul>
             {% for version in entrega.versiones.all %}
                 <li>{{ version.fecha_subida|date:'d/m/Y H:i' }} —
-                    <a href="{{ version.archivo.url }}" target="_blank">Abrir versión</a>
+                    <a href="{% url 'entregas_docente:descargar_version' version.pk %}">Descargar versión</a>
                     {% if version.comentario %} — {{ version.comentario }}{% endif %}</li>
             {% empty %}
                 <li>No hay reentregas.</li>

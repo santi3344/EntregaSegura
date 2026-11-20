@@ -15,7 +15,8 @@
 4. Entrar a **Entregas** para consultar los trabajos recibidos.
 5. Usar los filtros por curso, actividad, estado, estudiante y fecha.
 6. Descargar el resultado como CSV o abrir el reporte imprimible para guardarlo como PDF.
-7. Abrir una entrega para revisar archivo, repositorio, evidencias y versiones.
+7. Abrir una entrega para revisar evidencias y versiones, y usar **Descargar archivo**
+   para guardar el archivo original o cualquiera de sus reentregas.
 
 ## Estudiante
 

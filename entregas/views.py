@@ -1,7 +1,9 @@
 from datetime import datetime
+from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
 from usuarios.models import Perfil
@@ -80,6 +82,61 @@ def docente_required(view_func):
             return redirect('inicio')
         return view_func(request, *args, **kwargs)
     return _wrapped
+
+
+def _puede_descargar_entrega(request, entrega):
+    return (
+        entrega.estudiante.usuario_id == request.user.id
+        or entrega.actividad.curso.docente_id == request.user.id
+    )
+
+
+@login_required
+def descargar_entrega(request, pk):
+    entrega = get_object_or_404(
+        Entrega.objects.select_related(
+            'estudiante__usuario',
+            'actividad__curso',
+        ),
+        pk=pk,
+    )
+    if not _puede_descargar_entrega(request, entrega):
+        raise Http404
+    if not entrega.archivo:
+        raise Http404
+    try:
+        archivo = entrega.archivo.open('rb')
+    except (FileNotFoundError, OSError) as error:
+        raise Http404('El archivo ya no está disponible.') from error
+    return FileResponse(
+        archivo,
+        as_attachment=True,
+        filename=Path(entrega.archivo.name).name,
+    )
+
+
+@login_required
+def descargar_version(request, pk):
+    version = get_object_or_404(
+        VersionEntrega.objects.select_related(
+            'entrega__estudiante__usuario',
+            'entrega__actividad__curso',
+        ),
+        pk=pk,
+    )
+    if not _puede_descargar_entrega(request, version.entrega):
+        raise Http404
+    if not version.archivo:
+        raise Http404
+    try:
+        archivo = version.archivo.open('rb')
+    except (FileNotFoundError, OSError) as error:
+        raise Http404('El archivo ya no está disponible.') from error
+    return FileResponse(
+        archivo,
+        as_attachment=True,
+        filename=Path(version.archivo.name).name,
+    )
 
 
 @login_required

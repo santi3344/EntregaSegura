@@ -18,7 +18,9 @@
         <div class="badge">{{ entrega.estado }}</div>
         <div class="meta"><strong>Curso:</strong> {{ entrega.actividad.curso.nombre }}</div>
         <div class="meta"><strong>Fecha de entrega:</strong> {{ entrega.fecha_entrega|date:'d/m/Y H:i' }}</div>
-        <p><strong>Archivo original:</strong> <a href="{{ entrega.archivo.url }}" target="_blank">Abrir archivo</a></p>
+        <p><strong>Archivo original:</strong>
+            <a href="{% url 'entregas_estudiante:descargar_entrega' entrega.pk %}">Descargar archivo</a>
+        </p>
         <p><strong>Repositorio GitHub:</strong>
             {% if entrega.repositorio_github %}
                 <a href="{{ entrega.repositorio_github }}" target="_blank" rel="noopener">{{ entrega.repositorio_github }}</a>
@@ -54,7 +56,7 @@
                         {{ version.fecha_subida|date:'d/m/Y H:i' }} - {{ version.estado }}
                         {% if version.repositorio_github %} - <a href="{{ version.repositorio_github }}" target="_blank" rel="noopener">Repositorio GitHub</a>{% endif %}
                         {% if version.comentario %} - {{ version.comentario }}{% endif %}
-                        <a href="{{ version.archivo.url }}" target="_blank">Ver archivo</a>
+                        <a href="{% url 'entregas_estudiante:descargar_version' version.pk %}">Descargar versión</a>
                         <ul>
                             {% for evidencia in version.evidencias.all %}
                                 <li>{{ evidencia.get_capa_display }}:

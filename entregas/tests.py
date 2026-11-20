@@ -65,6 +65,57 @@ class EntregasTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Tarea 1')
 
+    def test_estudiante_puede_descargar_su_archivo(self):
+        perfil = Perfil.objects.get(usuario=self.estudiante_user)
+        entrega = Entrega.objects.create(
+            actividad=self.actividad,
+            estudiante=perfil,
+            archivo=SimpleUploadedFile(
+                'cuenta_de_servicios.pdf',
+                b'contenido descargable',
+                content_type='application/pdf',
+            ),
+        )
+        client = Client()
+        client.force_login(self.estudiante_user)
+
+        response = client.get(
+            reverse(
+                'entregas_estudiante:descargar_entrega',
+                kwargs={'pk': entrega.pk},
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('attachment', response['Content-Disposition'])
+        self.assertIn('cuenta_de_servicios', response['Content-Disposition'])
+        self.assertIn('.pdf', response['Content-Disposition'])
+        self.assertEqual(b''.join(response.streaming_content), b'contenido descargable')
+
+    def test_usuario_ajeno_no_puede_descargar_archivo(self):
+        perfil = Perfil.objects.get(usuario=self.estudiante_user)
+        entrega = Entrega.objects.create(
+            actividad=self.actividad,
+            estudiante=perfil,
+            archivo=SimpleUploadedFile('privado.pdf', b'privado'),
+        )
+        otro_usuario = User.objects.create_user(
+            username='otro_estudiante',
+            password='123456',
+        )
+        Perfil.objects.create(usuario=otro_usuario, rol='ESTUDIANTE')
+        client = Client()
+        client.force_login(otro_usuario)
+
+        response = client.get(
+            reverse(
+                'entregas_estudiante:descargar_entrega',
+                kwargs={'pk': entrega.pk},
+            )
+        )
+
+        self.assertEqual(response.status_code, 404)
+
     @patch('entregas.validators.github_repository_status')
     def test_las_cuatro_capas_de_validacion_aprueban_una_entrega_valida(self, github_status):
         github_status.return_value = (True, 'Repositorio verificado.')
