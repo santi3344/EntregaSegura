@@ -62,12 +62,16 @@ def validate_submission(uploaded_file, github_url, activity, profile):
         if integrity_ok else 'El archivo está vacío.'
     )
 
-    metadata_ok = bool(activity and profile and github_url and GITHUB_PATTERN.match(github_url.strip()))
+    metadata_ok = bool(activity and profile)
     metadata_message = (
-        'Actividad, estudiante y URL de repositorio asociados correctamente.'
-        if metadata_ok else 'Faltan datos de actividad, estudiante o una URL GitHub válida.'
+        'Actividad y estudiante asociados correctamente.'
+        if metadata_ok else 'Faltan datos de actividad o estudiante.'
     )
-    github_ok, github_message = github_repository_status(github_url)
+    if github_url and github_url.strip():
+        github_ok, github_message = github_repository_status(github_url)
+    else:
+        github_ok = True
+        github_message = 'No se proporcionó repositorio GitHub; validación omitida.'
 
     return {
         'ARCHIVO': (file_ok, file_message),

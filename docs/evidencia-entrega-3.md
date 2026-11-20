@@ -19,7 +19,8 @@
 - Descarga de entregas en CSV.
 - Reporte HTML imprimible y guardable como PDF.
 - Aislamiento de resultados por docente autenticado.
-- Validaciones de archivos, integridad, metadatos y repositorio GitHub.
+- Validaciones de archivos, integridad y metadatos; el repositorio GitHub es opcional
+  y se verifica automáticamente cuando el estudiante proporciona un enlace.
 - Versionado de reentregas.
 
 ## Seguridad implementada

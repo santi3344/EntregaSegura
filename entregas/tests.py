@@ -88,3 +88,43 @@ class EntregasTests(TestCase):
             'ARCHIVO', 'INTEGRIDAD', 'METADATOS', 'GITHUB'
         )))
         self.assertEqual(len(resultados['hash_archivo']), 64)
+
+    def test_entrega_sin_github_aprueba_y_omite_su_validacion(self):
+        perfil = Perfil.objects.get(usuario=self.estudiante_user)
+        archivo = SimpleUploadedFile(
+            'entrega.pdf', b'contenido sin repositorio', content_type='application/pdf'
+        )
+
+        resultados = validate_submission(archivo, '', self.actividad, perfil)
+
+        self.assertTrue(all(resultados[capa][0] for capa in (
+            'ARCHIVO', 'INTEGRIDAD', 'METADATOS', 'GITHUB'
+        )))
+        self.assertIn('validación omitida', resultados['GITHUB'][1])
+
+    def test_estudiante_puede_entregar_sin_github(self):
+        client = Client(HTTP_HOST='127.0.0.1:8000')
+        client.force_login(self.estudiante_user)
+        archivo = SimpleUploadedFile(
+            'entrega.pdf', b'contenido sin github', content_type='application/pdf'
+        )
+
+        with patch('entregas.validators.github_repository_status') as github_status:
+            response = client.post(
+                reverse('entregas_estudiante:crear_entrega'),
+                {
+                    'actividad': self.actividad.pk,
+                    'archivo': archivo,
+                    'repositorio_github': '',
+                    'observaciones': '',
+                },
+            )
+
+        self.assertRedirects(
+            response,
+            reverse('entregas_estudiante:detalle_entrega', kwargs={
+                'pk': Entrega.objects.get().pk,
+            }),
+        )
+        github_status.assert_not_called()
+        self.assertEqual(Entrega.objects.count(), 1)

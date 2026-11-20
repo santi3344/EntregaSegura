@@ -55,6 +55,11 @@ class EntregaForm(forms.ModelForm):
 
     def __init__(self, user=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['repositorio_github'].label = 'Repositorio GitHub (opcional)'
+        self.fields['repositorio_github'].required = False
+        self.fields['repositorio_github'].help_text = (
+            'Puedes dejarlo vacío si la actividad no usa un repositorio.'
+        )
         self.user = user
         if user is not None:
             perfil = Perfil.objects.filter(usuario=user, rol='ESTUDIANTE').first()
@@ -69,8 +74,6 @@ class EntregaForm(forms.ModelForm):
 
     def clean_repositorio_github(self):
         value = self.cleaned_data.get('repositorio_github', '').strip()
-        if not value:
-            raise forms.ValidationError('El repositorio GitHub es obligatorio.')
         return value
 
     def clean_observaciones(self):
@@ -102,10 +105,16 @@ class VersionEntregaForm(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['repositorio_github'].label = 'Repositorio GitHub (opcional)'
+        self.fields['repositorio_github'].required = False
+        self.fields['repositorio_github'].help_text = (
+            'Puedes dejarlo vacío si la actividad no usa un repositorio.'
+        )
+
     def clean_repositorio_github(self):
         value = self.cleaned_data.get('repositorio_github', '').strip()
-        if not value:
-            raise forms.ValidationError('El repositorio GitHub es obligatorio.')
         return value
 
     def clean_comentario(self):

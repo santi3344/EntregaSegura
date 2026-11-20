@@ -9,6 +9,8 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from cursos.models import Curso, Grupo
+from entregas.models import Actividad, Entrega
 from .models import CodigoRegistroDocente, Perfil, RegistroDocentePendiente
 
 
@@ -57,6 +59,54 @@ class AccesoPanelesTests(TestCase):
 		panel = self.client.get(reverse('panel_estudiante'))
 		self.assertEqual(panel.status_code, 200)
 		self.assertContains(panel, 'Panel estudiante')
+
+	def test_panel_estudiante_muestra_actividades_pendientes(self):
+		curso = Curso.objects.create(
+			nombre='Curso pendiente',
+			descripcion='Curso de prueba',
+			docente=self.docente,
+		)
+		grupo = Grupo.objects.create(nombre='Grupo 1', curso=curso)
+		grupo.estudiantes.add(self.estudiante.perfil)
+		Actividad.objects.create(
+			titulo='Actividad pendiente visible',
+			descripcion='Trabajo pendiente',
+			curso=curso,
+			fecha_limite=timezone.now() + timedelta(days=2),
+			creado_por=self.docente,
+		)
+		self.client.force_login(self.estudiante)
+
+		panel = self.client.get(reverse('panel_estudiante'))
+
+		self.assertContains(panel, 'Actividades pendientes')
+		self.assertContains(panel, 'Actividad pendiente visible')
+		self.assertContains(panel, 'Curso pendiente')
+
+	def test_panel_estudiante_no_muestra_actividad_ya_entregada_como_pendiente(self):
+		curso = Curso.objects.create(
+			nombre='Curso entregado',
+			descripcion='Curso de prueba',
+			docente=self.docente,
+		)
+		grupo = Grupo.objects.create(nombre='Grupo 2', curso=curso)
+		grupo.estudiantes.add(self.estudiante.perfil)
+		actividad = Actividad.objects.create(
+			titulo='Actividad ya entregada',
+			curso=curso,
+			fecha_limite=timezone.now() + timedelta(days=2),
+			creado_por=self.docente,
+		)
+		Entrega.objects.create(
+			actividad=actividad,
+			estudiante=self.estudiante.perfil,
+			archivo='entregas/entregada.pdf',
+		)
+		self.client.force_login(self.estudiante)
+
+		panel = self.client.get(reverse('panel_estudiante'))
+
+		self.assertNotContains(panel, 'Actividad ya entregada')
 
 	def test_perfil_muestra_cerrar_sesion_y_permite_cambiar_de_rol(self):
 		for usuario, nombre_panel in (

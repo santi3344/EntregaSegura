@@ -21,7 +21,8 @@
 
 1. Entrar a **Mis entregas**.
 2. Seleccionar una actividad disponible.
-3. Adjuntar el archivo y escribir el repositorio GitHub.
+3. Adjuntar el archivo. El repositorio GitHub es opcional: si se proporciona, debe ser
+   un enlace público válido y se verifica automáticamente.
 4. Revisar el resultado de las cuatro validaciones.
 5. Usar **Hacer reentrega** para crear una nueva versión con comentario.
 

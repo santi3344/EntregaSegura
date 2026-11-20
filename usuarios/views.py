@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from cursos.models import Curso, Grupo
+from entregas.models import Actividad, Entrega
 
 from .forms import CodigoRegistroDocenteForm, CrearEstudianteForm, RegistroDocenteForm
 from .models import CodigoRegistroDocente, Perfil, RegistroDocentePendiente
@@ -384,6 +385,18 @@ def panel_estudiante(request):
 
         return redirect('inicio')
 
+    actividades_pendientes = list(
+        Actividad.objects.filter(
+            curso__grupos__estudiantes=perfil,
+            activo=True,
+        )
+        .exclude(entregas__estudiante=perfil)
+        .select_related('curso')
+        .distinct()
+        .order_by('fecha_limite', 'titulo')
+    )
+    entregas_realizadas = Entrega.objects.filter(estudiante=perfil).count()
+
     return render(
         request,
         'usuarios/estudiante.html',
@@ -396,6 +409,8 @@ def panel_estudiante(request):
             'cursos': Curso.objects.filter(
                 grupos__estudiantes=perfil
             ).distinct().order_by('nombre'),
+            'actividades_pendientes': actividades_pendientes,
+            'total_entregas': entregas_realizadas,
         }
     )
 
