@@ -100,6 +100,7 @@ class RegistroDocenteVerificadoTests(TestCase):
 			'first_name': 'Docente',
 			'last_name': 'Nuevo',
 			'email': 'docente.nuevo@example.com',
+			'telefono': '+573001234567',
 			'password1': 'F0r-Teacher!Secure-99',
 			'password2': 'F0r-Teacher!Secure-99',
 		}

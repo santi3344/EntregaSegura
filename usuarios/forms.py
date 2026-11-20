@@ -5,12 +5,17 @@ from django.contrib.auth.models import User
 
 class RegistroDocenteForm(UserCreationForm):
     email = forms.EmailField(label='Correo electrónico')
+    telefono = forms.CharField(
+        label='Teléfono celular',
+        max_length=16,
+        help_text='Usa formato internacional, por ejemplo +573001234567.',
+    )
     first_name = forms.CharField(label='Nombre', max_length=150)
     last_name = forms.CharField(label='Apellidos', max_length=150)
 
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name', 'email')
+        fields = ('username', 'first_name', 'last_name', 'email', 'telefono')
         labels = {'username': 'Nombre de usuario'}
 
     def clean_username(self):
@@ -36,6 +41,16 @@ class RegistroDocenteForm(UserCreationForm):
         if any(ord(char) < 32 for char in value):
             raise forms.ValidationError('El nombre contiene caracteres inválidos.')
         return value
+
+    def clean_telefono(self):
+        telefono = self.cleaned_data['telefono'].strip()
+        if not telefono.startswith('+') or not telefono[1:].isdigit():
+            raise forms.ValidationError(
+                'Ingresa el teléfono en formato internacional, por ejemplo +573001234567.'
+            )
+        if not 10 <= len(telefono[1:]) <= 15:
+            raise forms.ValidationError('El teléfono debe tener entre 10 y 15 dígitos.')
+        return telefono
 
     def clean_last_name(self):
         value = self.cleaned_data['last_name'].strip()

@@ -19,6 +19,37 @@ from .forms import RegistroDocenteForm
 from .models import Perfil, RegistroDocentePendiente
 
 
+def enviar_codigo_verificacion(usuario, codigo):
+    twilio_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', '')
+    twilio_token = getattr(settings, 'TWILIO_AUTH_TOKEN', '')
+    twilio_from = getattr(settings, 'TWILIO_FROM_NUMBER', '')
+    if twilio_sid and twilio_token and twilio_from:
+        from twilio.rest import Client
+
+        Client(twilio_sid, twilio_token).messages.create(
+            body=(
+                f'EntregaSegura: tu código de verificación es {codigo}. '
+                'Vence en 10 minutos.'
+            ),
+            from_=twilio_from,
+            to=usuario.telefono,
+        )
+        return
+
+    send_mail(
+        subject='Código de verificación de EntregaSegura',
+        message=(
+            f'Hola {usuario.first_name or usuario.username},\n\n'
+            f'Tu código de verificación es: {codigo}\n'
+            'Vence en 10 minutos. Si no solicitaste esta cuenta, '
+            'puedes ignorar este mensaje.'
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[usuario.email],
+        fail_silently=False,
+    )
+
+
 # ==========================================
 # LOGIN
 # ==========================================
@@ -105,6 +136,7 @@ def registro_docente(request):
         pendiente = RegistroDocentePendiente.objects.create(
             username=usuario.username,
             email=usuario.email,
+            telefono=form.cleaned_data['telefono'],
             first_name=usuario.first_name,
             last_name=usuario.last_name,
             password_hash=usuario.password,
@@ -113,25 +145,14 @@ def registro_docente(request):
         )
 
         try:
-            send_mail(
-                subject='Código de verificación de EntregaSegura',
-                message=(
-                    f'Hola {usuario.first_name or usuario.username},\n\n'
-                    f'Tu código de verificación es: {codigo}\n'
-                    'Vence en 10 minutos. Si no solicitaste esta cuenta, '
-                    'puedes ignorar este mensaje.'
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[usuario.email],
-                fail_silently=False,
-            )
+            enviar_codigo_verificacion(usuario, codigo)
         except Exception:
             pendiente.delete()
             return render(request, 'usuarios/registro_docente.html', {
                 'form': form,
                 'error': (
-                    'No se pudo enviar el correo. Verifica la configuración '
-                    'del servicio de correo e inténtalo nuevamente.'
+                    'No se pudo enviar el código. Verifica la configuración '
+                    'de SMS e inténtalo nuevamente.'
                 ),
             })
 
@@ -170,7 +191,7 @@ def verificar_registro_docente(request, registro_id):
                 return render(request, 'usuarios/verificar_registro_docente.html', {
                     'bloqueado': True,
                 })
-            error = 'El código no es correcto. Revisa tu correo e inténtalo de nuevo.'
+            error = 'El código no es correcto. Revisa tu celular e inténtalo de nuevo.'
         else:
             try:
                 with transaction.atomic():
@@ -203,12 +224,12 @@ def verificar_registro_docente(request, registro_id):
                     'error': 'No se pudo completar el registro. Inicia el proceso nuevamente.',
                 })
 
-            messages.success(request, 'Correo verificado. Ya puedes iniciar sesión como docente.')
+            messages.success(request, 'Código verificado. Ya puedes iniciar sesión como docente.')
             return redirect('login')
 
     return render(request, 'usuarios/verificar_registro_docente.html', {
         'error': error,
-        'correo': pendiente.email,
+        'telefono': pendiente.telefono,
         'registro_id': pendiente.pk,
     })
 

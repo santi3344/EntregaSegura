@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verificar correo | EntregaSegura</title>
+    <title>Verificar SMS | EntregaSegura</title>
     <style>
         * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
         body { min-height: 100vh; margin: 0; padding: 24px; display: grid; place-items: center; background: linear-gradient(135deg, #0f172a, #1e3a8a, #2563eb); }
@@ -30,10 +30,10 @@
             <p>Se alcanzó el máximo de intentos. Inicia el registro nuevamente para recibir un nuevo código.</p>
             <a class="back" href="{% url 'registro_docente' %}">Crear cuenta nuevamente</a>
         {% else %}
-            <h1>Verifica tu correo</h1>
-            <p>Ingresa el código de seis dígitos enviado a:</p>
-            <p class="email">{{ correo }}</p>
-            <p>El código vence en 10 minutos. En modo local, revisa la terminal donde se ejecuta Django.</p>
+            <h1>Verifica tu celular</h1>
+            <p>Ingresa el código de seis dígitos enviado por SMS a:</p>
+            <p class="email">{{ telefono }}</p>
+            <p>El código vence en 10 minutos.</p>
             {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
             <form method="post">
                 {% csrf_token %}
