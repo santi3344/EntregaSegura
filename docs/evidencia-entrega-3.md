@@ -38,8 +38,16 @@ datos y comprime `media/` cuando existe. La restauración debe probarse siempre
 sobre una copia, nunca sobre la base de producción. La prueba local realizada
 creó un respaldo y obtuvo `PRAGMA integrity_check: ok`.
 
-## Limitaciones pendientes
+## Respaldo de producción
 
-No se declara producción terminada porque todavía faltan proveedor, dominio,
-DNS, certificado TLS, almacenamiento persistente, SMTP y programación de
-respaldos remotos.
+El repositorio incluye `backups/backup_production.ps1`, que genera un respaldo
+custom de PostgreSQL y un archivo comprimido de `media/`, con retención
+configurable. `backups/restore_production.ps1` restaura el respaldo en una base
+de datos de prueba. El respaldo administrado de PostgreSQL debe activarse en el
+panel de Railway y la prueba de restauración debe registrarse con fecha,
+responsable y resultado.
+
+## Pendientes no programables
+
+Quedan la aprobación institucional de la política de datos, la activación del
+respaldo administrado en Railway y la sustentación del proyecto.
