@@ -155,3 +155,6 @@ DEFAULT_FROM_EMAIL = os.getenv(
     'DEFAULT_FROM_EMAIL',
     'EntregaSegura <no-reply@localhost>',
 )
+
+# Required institutional code for direct teacher registration.
+DOCENTE_REGISTRATION_CODE = os.getenv('DOCENTE_REGISTRATION_CODE', '')

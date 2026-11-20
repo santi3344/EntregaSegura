@@ -481,12 +481,37 @@
                 <div class="stat-icon">📤</div>
 
                 <div>
-                    <strong>0</strong>
+                    <strong>{{ total_entregas }}</strong>
                     <span>Entregas realizadas</span>
                 </div>
 
             </div>
 
+        </div>
+
+        <h2 class="titulo-seccion">Actividades pendientes</h2>
+
+        <div class="tarjeta" style="margin-bottom: 30px;">
+            {% if actividades_pendientes %}
+                <div style="display: grid; gap: 14px;">
+                    {% for actividad in actividades_pendientes %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 10px;">
+                            <div>
+                                <h3>{{ actividad.titulo }}</h3>
+                                <p style="margin: 5px 0 0;">
+                                    {{ actividad.curso.nombre }} · Fecha límite:
+                                    {{ actividad.fecha_limite|date:'d/m/Y H:i' }}
+                                </p>
+                            </div>
+                            <a href="{% url 'entregas_estudiante:crear_entrega' %}" class="boton">
+                                Entregar
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p style="margin: 0;">No tienes actividades pendientes por entregar.</p>
+            {% endif %}
         </div>
 
 

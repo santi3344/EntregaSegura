@@ -8,7 +8,7 @@
 | Control | Comando | Resultado |
 |---|---|---|
 | Configuración Django | `python manage.py check` | PASS: sin errores |
-| Suite completa | `python manage.py test` | PASS: 30 pruebas aprobadas |
+| Suite completa | `python manage.py test` | PASS: 45 pruebas aprobadas |
 | Sintaxis Python | `python -m compileall -q EntregaSegura cursos entregas usuarios` | PASS |
 | Configuración de despliegue | `python manage.py check --deploy --settings=EntregaSegura.production` | PASS con variables de validación; falta probar con el dominio real |
 
@@ -19,8 +19,13 @@
 - Descarga de entregas en CSV.
 - Reporte HTML imprimible y guardable como PDF.
 - Aislamiento de resultados por docente autenticado.
-- Validaciones de archivos, integridad, metadatos y repositorio GitHub.
+- Validaciones de archivos, integridad y metadatos; el repositorio GitHub es opcional
+  y se verifica automáticamente cuando el estudiante proporciona un enlace.
 - Versionado de reentregas.
+- Descarga protegida de archivos originales y versiones de reentrega para
+  estudiantes y docentes autorizados.
+- Panel del estudiante con actividades pendientes, fechas límite y acceso
+  directo al formulario de entrega.
 
 ## Seguridad implementada
 
@@ -38,8 +43,22 @@ datos y comprime `media/` cuando existe. La restauración debe probarse siempre
 sobre una copia, nunca sobre la base de producción. La prueba local realizada
 creó un respaldo y obtuvo `PRAGMA integrity_check: ok`.
 
-## Limitaciones pendientes
+## Respaldo de producción
 
-No se declara producción terminada porque todavía faltan proveedor, dominio,
-DNS, certificado TLS, almacenamiento persistente, SMTP y programación de
-respaldos remotos.
+El repositorio incluye `backups/backup_production.ps1`, que genera un respaldo
+custom de PostgreSQL y un archivo comprimido de `media/`, con retención
+configurable. `backups/restore_production.ps1` restaura el respaldo en una base
+de datos de prueba. El respaldo administrado de PostgreSQL está activado en el panel de Railway.
+La prueba de restauración debe registrarse con fecha, responsable y resultado.
+
+El 20 de noviembre de 2026 se creó una copia de seguridad de volumen en
+Railway de 155 MB y se configuró la siguiente copia automática para 24 horas
+después. La configuración quedó visible en la pestaña **Copias de seguridad**
+del servicio PostgreSQL.
+
+## Pendientes no programables
+
+Quedan la firma de aprobación institucional de la política de datos, la
+evidencia formal de una restauración de respaldo y la sustentación del
+proyecto. La política está preparada para revisión y firma en
+`docs/politica-tratamiento-datos.md`.

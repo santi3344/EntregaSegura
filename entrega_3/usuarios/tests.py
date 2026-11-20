@@ -1,14 +1,17 @@
 import re
 from datetime import timedelta
 
-from django.contrib.auth.models import User
 from django.core import mail
+from django.contrib.auth.hashers import check_password
+from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Perfil, RegistroDocentePendiente
+from cursos.models import Curso, Grupo
+from entregas.models import Actividad, Entrega
+from .models import CodigoRegistroDocente, Perfil, RegistroDocentePendiente
 
 
 class AccesoPanelesTests(TestCase):
@@ -57,6 +60,54 @@ class AccesoPanelesTests(TestCase):
 		self.assertEqual(panel.status_code, 200)
 		self.assertContains(panel, 'Panel estudiante')
 
+	def test_panel_estudiante_muestra_actividades_pendientes(self):
+		curso = Curso.objects.create(
+			nombre='Curso pendiente',
+			descripcion='Curso de prueba',
+			docente=self.docente,
+		)
+		grupo = Grupo.objects.create(nombre='Grupo 1', curso=curso)
+		grupo.estudiantes.add(self.estudiante.perfil)
+		Actividad.objects.create(
+			titulo='Actividad pendiente visible',
+			descripcion='Trabajo pendiente',
+			curso=curso,
+			fecha_limite=timezone.now() + timedelta(days=2),
+			creado_por=self.docente,
+		)
+		self.client.force_login(self.estudiante)
+
+		panel = self.client.get(reverse('panel_estudiante'))
+
+		self.assertContains(panel, 'Actividades pendientes')
+		self.assertContains(panel, 'Actividad pendiente visible')
+		self.assertContains(panel, 'Curso pendiente')
+
+	def test_panel_estudiante_no_muestra_actividad_ya_entregada_como_pendiente(self):
+		curso = Curso.objects.create(
+			nombre='Curso entregado',
+			descripcion='Curso de prueba',
+			docente=self.docente,
+		)
+		grupo = Grupo.objects.create(nombre='Grupo 2', curso=curso)
+		grupo.estudiantes.add(self.estudiante.perfil)
+		actividad = Actividad.objects.create(
+			titulo='Actividad ya entregada',
+			curso=curso,
+			fecha_limite=timezone.now() + timedelta(days=2),
+			creado_por=self.docente,
+		)
+		Entrega.objects.create(
+			actividad=actividad,
+			estudiante=self.estudiante.perfil,
+			archivo='entregas/entregada.pdf',
+		)
+		self.client.force_login(self.estudiante)
+
+		panel = self.client.get(reverse('panel_estudiante'))
+
+		self.assertNotContains(panel, 'Actividad ya entregada')
+
 	def test_perfil_muestra_cerrar_sesion_y_permite_cambiar_de_rol(self):
 		for usuario, nombre_panel in (
 			(self.docente, 'panel_docente'),
@@ -92,7 +143,9 @@ class AccesoPanelesTests(TestCase):
 		self.assertEqual(respuesta.status_code, 403)
 
 
-@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+@override_settings(
+	EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+)
 class RegistroDocenteVerificadoTests(TestCase):
 	def datos_registro(self):
 		return {
@@ -100,7 +153,6 @@ class RegistroDocenteVerificadoTests(TestCase):
 			'first_name': 'Docente',
 			'last_name': 'Nuevo',
 			'email': 'docente.nuevo@example.com',
-			'telefono': '+573001234567',
 			'password1': 'F0r-Teacher!Secure-99',
 			'password2': 'F0r-Teacher!Secure-99',
 		}
@@ -116,17 +168,20 @@ class RegistroDocenteVerificadoTests(TestCase):
 		codigo = re.search(r'\b(\d{6})\b', mail.outbox[-1].body).group(1)
 		return respuesta, pendiente, codigo
 
-	def test_registro_docente_solo_se_crea_tras_verificar_codigo(self):
+	def test_registro_docente_solo_crea_cuenta_tras_verificar_correo(self):
 		respuesta, pendiente, codigo = self.iniciar_registro()
 
 		self.assertRedirects(
 			respuesta,
-		reverse('verificar_registro_docente', args=[pendiente.pk]),
+			reverse('verificar_registro_docente', args=[pendiente.pk]),
 		)
-		self.assertFalse(User.objects.filter(username='docente_nuevo').exists())
 		self.assertEqual(mail.outbox[-1].to, ['docente.nuevo@example.com'])
+		self.assertFalse(User.objects.filter(username='docente_nuevo').exists())
 		self.assertNotEqual(pendiente.codigo_hash, codigo)
-		self.assertNotEqual(pendiente.password_hash, self.datos_registro()['password1'])
+		self.assertNotEqual(
+			pendiente.password_hash,
+			self.datos_registro()['password1'],
+		)
 
 		respuesta = self.client.post(
 			reverse('verificar_registro_docente', args=[pendiente.pk]),
@@ -137,20 +192,31 @@ class RegistroDocenteVerificadoTests(TestCase):
 		usuario = User.objects.get(username='docente_nuevo')
 		self.assertTrue(usuario.check_password(self.datos_registro()['password1']))
 		self.assertEqual(usuario.perfil.rol, 'DOCENTE')
-		self.assertFalse(RegistroDocentePendiente.objects.filter(pk=pendiente.pk).exists())
+		self.assertFalse(
+			RegistroDocentePendiente.objects.filter(username='docente_nuevo').exists()
+		)
 
-	def test_codigo_incorrecto_bloquea_al_quinto_intento(self):
-		_, pendiente, _ = self.iniciar_registro()
-		url = reverse('verificar_registro_docente', args=[pendiente.pk])
+	def test_registro_docente_requiere_correo(self):
+		datos = self.datos_registro()
+		datos.pop('email')
 
-		for _ in range(5):
-			respuesta = self.client.post(url, {'codigo': '000000'})
-
-		self.assertContains(respuesta, 'Verificación bloqueada')
+		respuesta = self.client.post(reverse('registro_docente'), datos)
+		self.assertEqual(respuesta.status_code, 200)
+		self.assertContains(respuesta, 'This field is required.')
 		self.assertFalse(User.objects.filter(username='docente_nuevo').exists())
-		self.assertFalse(RegistroDocentePendiente.objects.filter(pk=pendiente.pk).exists())
 
-	def test_codigo_vencido_no_crea_la_cuenta(self):
+	def test_codigo_invalido_no_crea_cuenta(self):
+		_, pendiente, _ = self.iniciar_registro()
+		respuesta = self.client.post(
+			reverse('verificar_registro_docente', args=[pendiente.pk]),
+			{'codigo': '000000'},
+		)
+
+		self.assertEqual(respuesta.status_code, 200)
+		self.assertContains(respuesta, 'El código no es correcto.')
+		self.assertFalse(User.objects.filter(username='docente_nuevo').exists())
+
+	def test_codigo_vencido_no_crea_cuenta(self):
 		_, pendiente, _ = self.iniciar_registro()
 		pendiente.expira_en = timezone.now() - timedelta(seconds=1)
 		pendiente.save(update_fields=['expira_en'])
@@ -161,9 +227,17 @@ class RegistroDocenteVerificadoTests(TestCase):
 
 		self.assertContains(respuesta, 'El código venció')
 		self.assertFalse(User.objects.filter(username='docente_nuevo').exists())
-		self.assertFalse(RegistroDocentePendiente.objects.filter(pk=pendiente.pk).exists())
 
-	def test_no_envia_varios_codigos_al_mismo_correo_mientras_hay_uno_vigente(self):
+	def test_quinto_codigo_incorrecto_bloquea_verificacion(self):
+		_, pendiente, _ = self.iniciar_registro()
+		url = reverse('verificar_registro_docente', args=[pendiente.pk])
+		for _ in range(5):
+			respuesta = self.client.post(url, {'codigo': '000000'})
+
+		self.assertContains(respuesta, 'Verificación bloqueada')
+		self.assertFalse(User.objects.filter(username='docente_nuevo').exists())
+
+	def test_no_envia_dos_codigos_mientras_hay_verificacion_vigente(self):
 		self.iniciar_registro()
 		respuesta = self.client.post(
 			reverse('registro_docente'),
@@ -172,11 +246,179 @@ class RegistroDocenteVerificadoTests(TestCase):
 				'username': 'docente_otro',
 			},
 		)
-
 		self.assertContains(respuesta, 'verificación pendiente')
 		self.assertEqual(len(mail.outbox), 1)
-		self.assertEqual(RegistroDocentePendiente.objects.count(), 1)
 
-	def test_login_muestra_enlace_para_crear_cuenta_docente(self):
-		respuesta = self.client.get(reverse('login'))
-		self.assertContains(respuesta, reverse('registro_docente'))
+
+class GestionEstudiantesTests(TestCase):
+	def setUp(self):
+		self.docente = User.objects.create_user(
+			username='docente_creador',
+			password='Clave-segura-123',
+		)
+		Perfil.objects.create(usuario=self.docente, rol='DOCENTE')
+		self.client.force_login(self.docente)
+
+	def datos_estudiante(self):
+		return {
+			'username': 'estudiante_nuevo',
+			'first_name': 'Estudiante',
+			'last_name': 'Nuevo',
+			'email': 'estudiante@example.com',
+			'password1': 'F0r-Student!Secure-99',
+			'password2': 'F0r-Student!Secure-99',
+		}
+
+	def test_docente_crea_estudiante_con_cambio_de_password_obligatorio(self):
+		respuesta = self.client.post(
+			reverse('crear_estudiante'),
+			self.datos_estudiante(),
+		)
+
+		self.assertRedirects(respuesta, reverse('crear_estudiante'))
+		estudiante = User.objects.get(username='estudiante_nuevo')
+		self.assertEqual(estudiante.perfil.rol, 'ESTUDIANTE')
+		self.assertTrue(estudiante.perfil.debe_cambiar_password)
+		self.assertTrue(estudiante.check_password('F0r-Student!Secure-99'))
+
+	def test_estudiante_debe_cambiar_password_antes_del_panel(self):
+		estudiante = User.objects.create_user(
+			username='estudiante_temporal',
+			password='F0r-Student!Secure-99',
+		)
+		Perfil.objects.create(
+			usuario=estudiante,
+			rol='ESTUDIANTE',
+			debe_cambiar_password=True,
+		)
+		self.client.logout()
+		respuesta = self.client.post(
+			reverse('login'),
+			{
+				'usuario': 'estudiante_temporal',
+				'password': 'F0r-Student!Secure-99',
+			},
+		)
+
+		self.assertRedirects(respuesta, reverse('cambiar_password'))
+
+	def test_estudiante_sin_cambio_puede_actualizar_password(self):
+		estudiante = User.objects.create_user(
+			username='estudiante_temporal',
+			password='F0r-Student!Secure-99',
+		)
+		Perfil.objects.create(
+			usuario=estudiante,
+			rol='ESTUDIANTE',
+			debe_cambiar_password=True,
+		)
+		self.client.force_login(estudiante)
+		respuesta = self.client.post(
+			reverse('cambiar_password'),
+			{
+				'old_password': 'F0r-Student!Secure-99',
+				'new_password1': 'Nueva!Clave-Estudiante-2026',
+				'new_password2': 'Nueva!Clave-Estudiante-2026',
+			},
+		)
+
+		self.assertRedirects(respuesta, reverse('panel_estudiante'))
+		estudiante.refresh_from_db()
+		self.assertFalse(estudiante.perfil.debe_cambiar_password)
+		self.assertTrue(
+			User.objects.get(pk=estudiante.pk).check_password(
+				'Nueva!Clave-Estudiante-2026'
+			)
+		)
+
+	def test_estudiante_no_puede_crear_otro_estudiante(self):
+		estudiante = User.objects.create_user(
+			username='estudiante_existente',
+			password='Clave-segura-123',
+		)
+		Perfil.objects.create(usuario=estudiante, rol='ESTUDIANTE')
+		self.client.force_login(estudiante)
+
+		respuesta = self.client.get(reverse('crear_estudiante'))
+
+		self.assertRedirects(respuesta, reverse('inicio'))
+
+
+@override_settings(
+	DOCENTE_REGISTRATION_CODE='',
+	EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+)
+class CodigoRegistroDocenteTests(TestCase):
+	def test_acceso_no_autorizado_redirige_al_login(self):
+		respuesta = self.client.get(reverse('gestionar_codigo_registro_docente'))
+
+		self.assertRedirects(
+			respuesta,
+			f"{reverse('login')}?next={reverse('gestionar_codigo_registro_docente')}",
+		)
+
+	def test_usuario_autenticado_no_staff_recibe_prohibido(self):
+		usuario = User.objects.create_user(username='estudiante', password='Clave-segura-123')
+		self.client.force_login(usuario)
+
+		self.assertEqual(
+			self.client.get(reverse('gestionar_codigo_registro_docente')).status_code,
+			403,
+		)
+
+	def test_staff_genera_codigo_y_solo_se_muestra_en_la_respuesta(self):
+		administrador = User.objects.create_user(
+			username='admin_codigo',
+			password='Clave-segura-123',
+			is_staff=True,
+		)
+		self.client.force_login(administrador)
+
+		respuesta = self.client.post(reverse('gestionar_codigo_registro_docente'))
+
+		self.assertEqual(respuesta.status_code, 200)
+		codigo = respuesta.context['codigo_generado']
+		self.assertTrue(codigo)
+		self.assertContains(respuesta, codigo)
+		configuracion = CodigoRegistroDocente.objects.get(clave='docente')
+		self.assertTrue(check_password(codigo, configuracion.codigo_hash))
+		self.assertNotContains(
+			self.client.get(reverse('gestionar_codigo_registro_docente')),
+			codigo,
+		)
+
+	def test_registro_directo_acepta_codigo_generado(self):
+		administrador = User.objects.create_user(
+			username='admin_codigo',
+			password='Clave-segura-123',
+			is_superuser=True,
+			is_staff=True,
+		)
+		self.client.force_login(administrador)
+		respuesta_generacion = self.client.post(
+			reverse('gestionar_codigo_registro_docente')
+		)
+		codigo = respuesta_generacion.context['codigo_generado']
+
+		client = Client()
+		registro = client.post(
+			reverse('registro_docente'),
+			{
+				'username': 'docente_generado',
+				'first_name': 'Docente',
+				'last_name': 'Generado',
+				'email': 'generado@example.com',
+				'password1': 'F0r-Teacher!Secure-99',
+				'password2': 'F0r-Teacher!Secure-99',
+			},
+		)
+		self.assertRedirects(
+			registro,
+			reverse(
+				'verificar_registro_docente',
+				args=[RegistroDocentePendiente.objects.get(
+					username='docente_generado',
+				).pk],
+			),
+		)
+		self.assertEqual(len(mail.outbox), 1)

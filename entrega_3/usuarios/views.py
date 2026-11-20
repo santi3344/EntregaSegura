@@ -1,22 +1,25 @@
-import secrets
 from datetime import timedelta
+import secrets
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
+from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from cursos.models import Curso, Grupo
+from entregas.models import Actividad, Entrega
 
-from .forms import RegistroDocenteForm
-from .models import Perfil, RegistroDocentePendiente
+from .forms import CodigoRegistroDocenteForm, CrearEstudianteForm, RegistroDocenteForm
+from .models import CodigoRegistroDocente, Perfil, RegistroDocentePendiente
 
 
 def enviar_codigo_verificacion(usuario, codigo):
@@ -126,7 +129,6 @@ def registro_docente(request):
             codigo_hash=make_password(codigo),
             expira_en=timezone.now() + timedelta(minutes=10),
         )
-
         try:
             enviar_codigo_verificacion(usuario, codigo)
         except Exception:
@@ -134,14 +136,33 @@ def registro_docente(request):
             return render(request, 'usuarios/registro_docente.html', {
                 'form': form,
                 'error': (
-                    'No se pudo enviar el código. Verifica la configuración '
-                    'de SMS e inténtalo nuevamente.'
+                    'No se pudo enviar el código al correo. '
+                    'Verifica la configuración de Brevo e inténtalo nuevamente.'
                 ),
             })
-
         return redirect('verificar_registro_docente', registro_id=pendiente.pk)
 
     return render(request, 'usuarios/registro_docente.html', {'form': form})
+
+
+@login_required
+def gestionar_codigo_registro_docente(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden('Solo el personal administrador puede gestionar este código.')
+
+    codigo_generado = None
+    if request.method == 'POST':
+        codigo_generado = secrets.token_urlsafe(18)
+        CodigoRegistroDocente.objects.update_or_create(
+            clave='docente',
+            defaults={'codigo_hash': make_password(codigo_generado)},
+        )
+
+    return render(
+        request,
+        'usuarios/gestionar_codigo_docente.html',
+        {'codigo_generado': codigo_generado},
+    )
 
 
 def verificar_registro_docente(request, registro_id):
@@ -235,10 +256,14 @@ def redireccionar_por_rol(usuario):
 
         # DOCENTE
         if perfil.rol == 'DOCENTE':
+            if perfil.debe_cambiar_password:
+                return redirect('cambiar_password')
             return redirect('panel_docente')
 
         # ESTUDIANTE
         elif perfil.rol == 'ESTUDIANTE':
+            if perfil.debe_cambiar_password:
+                return redirect('cambiar_password')
             return redirect('panel_estudiante')
 
     except Perfil.DoesNotExist:
@@ -247,6 +272,46 @@ def redireccionar_por_rol(usuario):
 
     # Si no tiene perfil
     return redirect('inicio')
+
+
+@login_required
+def crear_estudiante(request):
+    if not Perfil.objects.filter(usuario=request.user, rol='DOCENTE').exists():
+        return redirect('inicio')
+
+    form = CrearEstudianteForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        usuario = form.save()
+        Perfil.objects.create(
+            usuario=usuario,
+            rol='ESTUDIANTE',
+            debe_cambiar_password=True,
+        )
+        messages.success(
+            request,
+            'Estudiante creado. Entrégale su usuario y contraseña temporal.',
+        )
+        return redirect('crear_estudiante')
+
+    return render(request, 'usuarios/crear_estudiante.html', {'form': form})
+
+
+@login_required
+def cambiar_password(request):
+    perfil = Perfil.objects.filter(usuario=request.user).first()
+    if perfil is None or not perfil.debe_cambiar_password:
+        return redireccionar_por_rol(request.user)
+
+    form = PasswordChangeForm(request.user, request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        usuario = form.save()
+        perfil.debe_cambiar_password = False
+        perfil.save(update_fields=['debe_cambiar_password'])
+        update_session_auth_hash(request, usuario)
+        messages.success(request, 'Contraseña actualizada correctamente.')
+        return redireccionar_por_rol(usuario)
+
+    return render(request, 'usuarios/cambiar_password.html', {'form': form})
 
 
 # ==========================================
@@ -320,6 +385,18 @@ def panel_estudiante(request):
 
         return redirect('inicio')
 
+    actividades_pendientes = list(
+        Actividad.objects.filter(
+            curso__grupos__estudiantes=perfil,
+            activo=True,
+        )
+        .exclude(entregas__estudiante=perfil)
+        .select_related('curso')
+        .distinct()
+        .order_by('fecha_limite', 'titulo')
+    )
+    entregas_realizadas = Entrega.objects.filter(estudiante=perfil).count()
+
     return render(
         request,
         'usuarios/estudiante.html',
@@ -332,6 +409,8 @@ def panel_estudiante(request):
             'cursos': Curso.objects.filter(
                 grupos__estudiantes=perfil
             ).distinct().order_by('nombre'),
+            'actividades_pendientes': actividades_pendientes,
+            'total_entregas': entregas_realizadas,
         }
     )
 

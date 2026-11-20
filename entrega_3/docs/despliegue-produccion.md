@@ -2,9 +2,10 @@
 
 ## Estado
 
-El repositorio contiene la configuración de producción y el script de respaldo,
-pero el despliegue real todavía requiere un proveedor, dominio, DNS y
-credenciales que no están disponibles en el repositorio.
+La aplicación está desplegada en Railway con PostgreSQL y dominio público.
+Los respaldos administrados deben activarse desde el panel de Railway. El
+repositorio incluye scripts para respaldar y restaurar PostgreSQL y `media/`
+fuera del servicio.
 
 ## Checklist
 
@@ -14,15 +15,15 @@ credenciales que no están disponibles en el repositorio.
 4. Ejecutar `python manage.py collectstatic --noinput`.
 5. Publicar mediante Gunicorn/Uvicorn detrás de HTTPS.
 6. Apuntar DNS del dominio al proveedor.
-7. Programar `backups/backup_sqlite.ps1` o el respaldo administrado del proveedor.
-8. Probar restauración y documentar fecha, responsable y resultado.
-9. Configurar monitoreo, logs y renovación del certificado.
+7. Activar los respaldos de PostgreSQL en el panel de Railway.
+8. Ejecutar `backups/backup_production.ps1` desde un equipo seguro o tarea programada,
+   con `DATABASE_URL` configurada como secreto.
+9. Probar la restauración sobre una base de datos de prueba con
+   `backups/restore_production.ps1`; nunca sobre producción.
+10. Documentar fecha, responsable, ubicación y resultado de la prueba.
+11. Configurar monitoreo, logs y renovación del certificado.
 
-Sin dominio y credenciales del proveedor no es posible afirmar que el sistema
-está desplegado en producción.
+### Variables para el respaldo externo
 
-## Bloqueo actual
-
-Al 19 de noviembre de 2026 no se ha seleccionado proveedor ni dominio. Por
-tanto, el código de producción está preparado, pero el despliegue real queda
-pendiente de esas credenciales y de la configuración DNS.
+El script utiliza `DATABASE_URL` y no imprime su valor. Para restaurar se debe
+usar una base de datos de prueba mediante `RESTORE_DATABASE_URL`.

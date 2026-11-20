@@ -19,6 +19,7 @@ class Perfil(models.Model):
         max_length=20,
         choices=ROLES
     )
+    debe_cambiar_password = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.usuario.username} - {self.rol}"
@@ -38,3 +39,14 @@ class RegistroDocentePendiente(models.Model):
 
     def __str__(self):
         return f"Registro docente pendiente: {self.username}"
+
+
+class CodigoRegistroDocente(models.Model):
+    """Código institucional vigente para el registro directo de docentes."""
+
+    clave = models.CharField(max_length=50, unique=True, default='docente')
+    codigo_hash = models.CharField(max_length=128)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Código de registro docente ({self.clave})"

@@ -4,13 +4,20 @@ from django.contrib.auth.models import User
 
 
 class RegistroDocenteForm(UserCreationForm):
-    email = forms.EmailField(label='Correo electrónico')
+    email = forms.EmailField(
+        label='Correo electrónico',
+        required=True,
+    )
     first_name = forms.CharField(label='Nombre', max_length=150)
     last_name = forms.CharField(label='Apellidos', max_length=150)
-
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name', 'email')
+        fields = (
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+        )
         labels = {'username': 'Nombre de usuario'}
 
     def clean_username(self):
@@ -24,7 +31,9 @@ class RegistroDocenteForm(UserCreationForm):
         return username
 
     def clean_email(self):
-        email = self.cleaned_data['email'].strip()
+        email = self.cleaned_data.get('email', '').strip()
+        if not email:
+            return ''
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError('Este correo ya está registrado.')
         return email
@@ -36,6 +45,31 @@ class RegistroDocenteForm(UserCreationForm):
         if any(ord(char) < 32 for char in value):
             raise forms.ValidationError('El nombre contiene caracteres inválidos.')
         return value
+
+
+class CodigoRegistroDocenteForm(forms.Form):
+    codigo_docente = forms.CharField(
+        label='Código institucional docente',
+        max_length=128,
+        strip=False,
+        widget=forms.PasswordInput,
+    )
+
+
+class CrearEstudianteForm(UserCreationForm):
+    first_name = forms.CharField(label='Nombre', max_length=150)
+    last_name = forms.CharField(label='Apellidos', max_length=150)
+    email = forms.EmailField(label='Correo electrónico', required=False)
+
+    class Meta:
+        model = User
+        fields = (
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+        )
+        labels = {'username': 'Nombre de usuario'}
 
 
     def clean_last_name(self):

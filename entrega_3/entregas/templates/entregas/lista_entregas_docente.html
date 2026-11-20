@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Entregas del docente</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 32px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn { background: #2563eb; color: white; padding: 10px 16px; border-radius: 8px; text-decoration: none; }
+        .card { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 10px 20px rgba(0,0,0,0.08); margin-top: 24px; }
+        .filters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        label { display: grid; gap: 5px; font-size: 13px; font-weight: bold; }
+        input, select, button { font: inherit; padding: 9px; border: 1px solid #cbd5e1; border-radius: 7px; }
+        button { background: #2563eb; color: white; cursor: pointer; }
+        .actions { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border-bottom: 1px solid #e5e7eb; padding: 12px; text-align: left; }
+        a { color: #2563eb; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Entregas académicas</h1>
+            <a class="btn" href="{% url 'entregas_docente:crear_actividad' %}">Nueva actividad</a>
+        </div>
+
+        <div class="card">
+            <h2>Filtros y reportes</h2>
+            <form method="get" class="filters">
+                <label>Curso
+                    <select name="curso">
+                        <option value="">Todos</option>
+                        {% for id, nombre in cursos_filtro %}
+                            <option value="{{ id }}" {% if filtros.curso == id|stringformat:'s' %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Actividad
+                    <select name="actividad">
+                        <option value="">Todas</option>
+                        {% for actividad in actividades %}
+                            <option value="{{ actividad.pk }}" {% if filtros.actividad == actividad.pk|stringformat:'s' %}selected{% endif %}>{{ actividad.titulo }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Estado
+                    <select name="estado">
+                        <option value="">Todos</option>
+                        {% for value, label in estados %}
+                            <option value="{{ value }}" {% if filtros.estado == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Estudiante
+                    <input type="search" name="estudiante" value="{{ filtros.estudiante }}" placeholder="Usuario">
+                </label>
+                <label>Desde
+                    <input type="date" name="desde" value="{{ filtros.desde }}">
+                </label>
+                <label>Hasta
+                    <input type="date" name="hasta" value="{{ filtros.hasta }}">
+                </label>
+                <div class="actions">
+                    <button type="submit">Aplicar filtros</button>
+                    <a class="btn" href="{% url 'entregas_docente:lista_entregas_docente' %}">Limpiar</a>
+                    <button type="submit" name="export" value="csv">Descargar CSV</button>
+                    <a class="btn" href="{% url 'entregas_docente:reporte_entregas_docente' %}?curso={{ filtros.curso }}&actividad={{ filtros.actividad }}&estado={{ filtros.estado }}&estudiante={{ filtros.estudiante }}&desde={{ filtros.desde }}&hasta={{ filtros.hasta }}" target="_blank">Reporte imprimible</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Actividades creadas</h2>
+            {% if actividades %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Actividad</th>
+                            <th>Curso</th>
+                            <th>Fecha límite</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for actividad in actividades %}
+                        <tr>
+                            <td>{{ actividad.titulo }}</td>
+                            <td>{{ actividad.curso.nombre }}</td>
+                            <td>{{ actividad.fecha_limite|date:'d/m/Y H:i' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>Aún no has creado actividades para este curso.</p>
+            {% endif %}
+        </div>
+
+        <div class="card" style="margin-top: 24px;">
+            <h2>Entregas registradas</h2>
+            {% if entregas %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Estudiante</th>
+                            <th>Actividad</th>
+                            <th>Curso</th>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entrega in entregas %}
+                        <tr>
+                            <td>{{ entrega.estudiante.usuario.username }}</td>
+                            <td>{{ entrega.actividad.titulo }}</td>
+                            <td>{{ entrega.actividad.curso.nombre }}</td>
+                            <td>{{ entrega.estado }}</td>
+                            <td>{{ entrega.fecha_entrega|date:'d/m/Y H:i' }}</td>
+                            <td><a href="{% url 'entregas_docente:detalle_entrega_docente' entrega.pk %}">Ver</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>Aún no hay entregas registradas.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

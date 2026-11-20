@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Código de registro docente | EntregaSegura</title>
+</head>
+<body>
+    <main>
+        <h1>Generar código de registro docente</h1>
+        <p>Solo el personal administrador puede realizar esta operación.</p>
+        {% if codigo_generado %}
+            <section role="alert">
+                <h2>Código generado</h2>
+                <p>Este código se muestra una sola vez. Guárdalo de forma segura:</p>
+                <code>{{ codigo_generado }}</code>
+            </section>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit">Generar y rotar código</button>
+        </form>
+    </main>
+</body>
+</html>

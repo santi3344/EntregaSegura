@@ -1,4 +1,4 @@
-# Guion de sustentación — Entrega 3
+![alt text](image.png)# Guion de sustentación — Entrega 3
 
 ## Diapositiva 1. Presentación
 
@@ -31,7 +31,8 @@ por roles y validación de archivos.
 ## Diapositiva 6. Pruebas
 
 Indicar que `manage.py check` no reportó errores y que la suite completa
-ejecutó 30 pruebas con 30 aprobadas.
+ejecutó 45 pruebas con 45 aprobadas. Mostrar también la prueba de descarga
+protegida de archivos.
 
 ## Diapositiva 7. Documentación y datos personales
 
@@ -41,11 +42,13 @@ o jurídica antes de su aprobación definitiva.
 
 ## Diapositiva 8. Estado de producción
 
-Explicar con transparencia que el código está preparado, pero el despliegue
-real queda pendiente de seleccionar proveedor, registrar dominio, configurar
-DNS, TLS, almacenamiento y respaldos remotos.
+Mostrar el despliegue público en Railway, el dominio activo y la pestaña de
+copias de seguridad de PostgreSQL. Indicar que existe una copia de volumen y
+un horario automático de respaldos. Aclarar que el respaldo de archivos
+cargados debe conservarse en un almacenamiento persistente independiente.
 
 ## Cierre
 
 La Entrega 3 programable está implementada y probada. Los pendientes restantes
-son de infraestructura externa, aprobación institucional y presentación.
+son documentar una restauración de respaldo, obtener la aprobación
+institucional de la política de datos y realizar la presentación.

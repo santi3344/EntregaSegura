@@ -26,10 +26,10 @@
 <body>
     <main class="card">
         <h1>Crear cuenta docente</h1>
-        <p class="intro">Enviaremos un código por correo antes de activar la cuenta. El registro crea exclusivamente un perfil de docente.</p>
+        <p class="intro">Completa tus datos. Recibirás un código de seis dígitos en tu correo para confirmar la cuenta. El registro crea exclusivamente un perfil de docente.</p>
 
         {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
-        {% if form.non_field_errors %}<div class="error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        {% if not paso_codigo and form.non_field_errors %}<div class="error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
 
         <form method="post" novalidate>
             {% csrf_token %}
@@ -49,7 +49,7 @@
             <button type="submit">Enviar código de verificación</button>
         </form>
 
-        <p class="note">El código vence en 10 minutos. En producción se envía mediante el servidor SMTP configurado.</p>
+        <p class="note">El código vence en 10 minutos y solo se puede usar una vez.</p>
         <a class="back" href="{% url 'login' %}">← Volver al inicio de sesión</a>
     </main>
 </body>
