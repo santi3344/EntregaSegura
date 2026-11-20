@@ -8,7 +8,7 @@
 | Control | Comando | Resultado |
 |---|---|---|
 | Configuración Django | `python manage.py check` | PASS: sin errores |
-| Suite completa | `python manage.py test` | PASS: 30 pruebas aprobadas |
+| Suite completa | `python manage.py test` | PASS: 34 pruebas aprobadas |
 | Sintaxis Python | `python -m compileall -q EntregaSegura cursos entregas usuarios` | PASS |
 | Configuración de despliegue | `python manage.py check --deploy --settings=EntregaSegura.production` | PASS con variables de validación; falta probar con el dominio real |
 
@@ -46,6 +46,11 @@ configurable. `backups/restore_production.ps1` restaura el respaldo en una base
 de datos de prueba. El respaldo administrado de PostgreSQL debe activarse en el
 panel de Railway y la prueba de restauración debe registrarse con fecha,
 responsable y resultado.
+
+El 20 de noviembre de 2026 se creó una copia de seguridad de volumen en
+Railway de 155 MB y se configuró la siguiente copia automática para 24 horas
+después. La configuración quedó visible en la pestaña **Copias de seguridad**
+del servicio PostgreSQL.
 
 ## Pendientes no programables
 
