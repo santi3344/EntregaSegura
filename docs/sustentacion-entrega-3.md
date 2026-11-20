@@ -31,7 +31,8 @@ por roles y validación de archivos.
 ## Diapositiva 6. Pruebas
 
 Indicar que `manage.py check` no reportó errores y que la suite completa
-ejecutó 30 pruebas con 30 aprobadas.
+ejecutó 45 pruebas con 45 aprobadas. Mostrar también la prueba de descarga
+protegida de archivos.
 
 ## Diapositiva 7. Documentación y datos personales
 
@@ -49,4 +50,5 @@ cargados debe conservarse en un almacenamiento persistente independiente.
 ## Cierre
 
 La Entrega 3 programable está implementada y probada. Los pendientes restantes
-son la aprobación institucional de la política de datos y la presentación.
+son documentar una restauración de respaldo, obtener la aprobación
+institucional de la política de datos y realizar la presentación.

@@ -8,7 +8,7 @@
 | Control | Comando | Resultado |
 |---|---|---|
 | Configuración Django | `python manage.py check` | PASS: sin errores |
-| Suite completa | `python manage.py test` | PASS: 34 pruebas aprobadas |
+| Suite completa | `python manage.py test` | PASS: 45 pruebas aprobadas |
 | Sintaxis Python | `python -m compileall -q EntregaSegura cursos entregas usuarios` | PASS |
 | Configuración de despliegue | `python manage.py check --deploy --settings=EntregaSegura.production` | PASS con variables de validación; falta probar con el dominio real |
 
@@ -22,6 +22,10 @@
 - Validaciones de archivos, integridad y metadatos; el repositorio GitHub es opcional
   y se verifica automáticamente cuando el estudiante proporciona un enlace.
 - Versionado de reentregas.
+- Descarga protegida de archivos originales y versiones de reentrega para
+  estudiantes y docentes autorizados.
+- Panel del estudiante con actividades pendientes, fechas límite y acceso
+  directo al formulario de entrega.
 
 ## Seguridad implementada
 
@@ -44,9 +48,8 @@ creó un respaldo y obtuvo `PRAGMA integrity_check: ok`.
 El repositorio incluye `backups/backup_production.ps1`, que genera un respaldo
 custom de PostgreSQL y un archivo comprimido de `media/`, con retención
 configurable. `backups/restore_production.ps1` restaura el respaldo en una base
-de datos de prueba. El respaldo administrado de PostgreSQL debe activarse en el
-panel de Railway y la prueba de restauración debe registrarse con fecha,
-responsable y resultado.
+de datos de prueba. El respaldo administrado de PostgreSQL está activado en el panel de Railway.
+La prueba de restauración debe registrarse con fecha, responsable y resultado.
 
 El 20 de noviembre de 2026 se creó una copia de seguridad de volumen en
 Railway de 155 MB y se configuró la siguiente copia automática para 24 horas
@@ -55,5 +58,5 @@ del servicio PostgreSQL.
 
 ## Pendientes no programables
 
-Quedan la aprobación institucional de la política de datos, la activación del
-respaldo administrado en Railway y la sustentación del proyecto.
+Quedan la aprobación institucional de la política de datos, la evidencia
+formal de una restauración de respaldo y la sustentación del proyecto.
