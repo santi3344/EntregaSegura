@@ -100,101 +100,46 @@ def registro_docente(request):
     if request.user.is_authenticated:
         return redireccionar_por_rol(request.user)
 
-    pendiente_id = request.session.get('registro_docente_pendiente')
-    pendiente = None
-    if pendiente_id:
-        pendiente = RegistroDocentePendiente.objects.filter(
-            pk=pendiente_id,
-            expira_en__gt=timezone.now(),
-        ).first()
-        if pendiente is None:
-            request.session.pop('registro_docente_pendiente', None)
-
-    if request.method == 'POST' and pendiente is None:
-        form = RegistroDocenteForm(request.POST)
-        if form.is_valid():
-            usuario = form.save(commit=False)
-            pendiente = RegistroDocentePendiente.objects.create(
-                username=usuario.username,
-                email=usuario.email,
-                first_name=usuario.first_name,
-                last_name=usuario.last_name,
-                password_hash=make_password(form.cleaned_data['password1']),
-                codigo_hash=make_password(secrets.token_urlsafe(24)),
-                expira_en=timezone.now() + timedelta(minutes=15),
-            )
-            request.session['registro_docente_pendiente'] = str(pendiente.pk)
+    form = RegistroDocenteForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        RegistroDocentePendiente.objects.filter(
+            expira_en__lte=timezone.now(),
+        ).delete()
+        if RegistroDocentePendiente.objects.filter(
+            email__iexact=form.cleaned_data['email'],
+        ).exists():
             return render(request, 'usuarios/registro_docente.html', {
-                'codigo_form': CodigoRegistroDocenteForm(),
                 'form': form,
-                'paso_codigo': True,
+                'error': (
+                    'Ya existe una verificación pendiente para ese correo. '
+                    'Usa el código enviado o espera a que venza.'
+                ),
             })
-    elif pendiente is not None:
-        form = RegistroDocenteForm()
-        codigo_form = CodigoRegistroDocenteForm(request.POST or None)
-        if request.method == 'POST' and codigo_form.is_valid():
-            codigo_proporcionado = codigo_form.cleaned_data['codigo_docente']
-            codigo_db = CodigoRegistroDocente.objects.filter(clave='docente').first()
-            codigo_valido = (
-                codigo_db is not None
-                and check_password(codigo_proporcionado, codigo_db.codigo_hash)
-            )
-            if codigo_db is None:
-                codigo_configurado = getattr(settings, 'DOCENTE_REGISTRATION_CODE', '')
-                codigo_valido = bool(codigo_configurado) and secrets.compare_digest(
-                    codigo_proporcionado,
-                    codigo_configurado,
-                )
-            if not codigo_valido:
-                codigo_form.add_error(
-                    'codigo_docente',
-                    'El código institucional docente no es válido.',
-                )
-                return render(request, 'usuarios/registro_docente.html', {
-                    'codigo_form': codigo_form,
-                    'form': form,
-                    'paso_codigo': True,
-                })
 
-            try:
-                with transaction.atomic():
-                    pendiente = RegistroDocentePendiente.objects.select_for_update().get(
-                        pk=pendiente.pk,
-                    )
-                    usuario = User(
-                        username=pendiente.username,
-                        email=pendiente.email,
-                        first_name=pendiente.first_name,
-                        last_name=pendiente.last_name,
-                        password=pendiente.password_hash,
-                    )
-                    usuario.save()
-                    Perfil.objects.create(usuario=usuario, rol='DOCENTE')
-                    pendiente.delete()
-            except (IntegrityError, RegistroDocentePendiente.DoesNotExist):
-                request.session.pop('registro_docente_pendiente', None)
-                return render(request, 'usuarios/registro_docente.html', {
-                    'form': form,
-                    'error': 'No se pudo completar el registro. Inicia el proceso nuevamente.',
-                })
+        codigo = f'{secrets.randbelow(1_000_000):06d}'
+        usuario = form.save(commit=False)
+        pendiente = RegistroDocentePendiente.objects.create(
+            username=usuario.username,
+            email=usuario.email,
+            first_name=usuario.first_name,
+            last_name=usuario.last_name,
+            password_hash=usuario.password,
+            codigo_hash=make_password(codigo),
+            expira_en=timezone.now() + timedelta(minutes=10),
+        )
+        try:
+            enviar_codigo_verificacion(usuario, codigo)
+        except Exception:
+            pendiente.delete()
+            return render(request, 'usuarios/registro_docente.html', {
+                'form': form,
+                'error': (
+                    'No se pudo enviar el código al correo. '
+                    'Verifica la configuración de Brevo e inténtalo nuevamente.'
+                ),
+            })
+        return redirect('verificar_registro_docente', registro_id=pendiente.pk)
 
-            request.session.pop('registro_docente_pendiente', None)
-            messages.success(
-                request,
-                'Cuenta docente creada correctamente. Ya puedes iniciar sesión.',
-            )
-            return redirect('login')
-
-        return render(request, 'usuarios/registro_docente.html', {
-            'codigo_form': codigo_form,
-            'form': form,
-            'paso_codigo': True,
-        })
-
-    if request.method == 'POST' and not form.is_valid():
-        return render(request, 'usuarios/registro_docente.html', {'form': form})
-
-    form = RegistroDocenteForm()
     return render(request, 'usuarios/registro_docente.html', {'form': form})
 
 

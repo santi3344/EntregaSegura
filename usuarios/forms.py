@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 class RegistroDocenteForm(UserCreationForm):
     email = forms.EmailField(
         label='Correo electrónico',
-        required=False,
+        required=True,
     )
     first_name = forms.CharField(label='Nombre', max_length=150)
     last_name = forms.CharField(label='Apellidos', max_length=150)

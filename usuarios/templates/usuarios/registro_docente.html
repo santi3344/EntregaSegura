@@ -26,17 +26,14 @@
 <body>
     <main class="card">
         <h1>Crear cuenta docente</h1>
-        <p class="intro">
-            {% if paso_codigo %}Tus datos fueron recibidos. Ahora ingresa el código institucional que te entregó el administrador.{% else %}Completa tus datos para iniciar el registro de una cuenta docente.{% endif %}
-            El registro crea exclusivamente un perfil de docente.
-        </p>
+        <p class="intro">Completa tus datos. Recibirás un código de seis dígitos en tu correo para confirmar la cuenta. El registro crea exclusivamente un perfil de docente.</p>
 
         {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
         {% if not paso_codigo and form.non_field_errors %}<div class="error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
 
         <form method="post" novalidate>
             {% csrf_token %}
-            {% for field in codigo_form|default:form %}
+            {% for field in form %}
                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                 {{ field }}
                 {% if field.help_text and field.name != 'password1' %}<p class="help">{{ field.help_text }}</p>{% endif %}
@@ -49,10 +46,10 @@
                     {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
                 {% endif %}
             {% endfor %}
-            <button type="submit">{% if paso_codigo %}Confirmar código y crear cuenta{% else %}Continuar{% endif %}</button>
+            <button type="submit">Enviar código de verificación</button>
         </form>
 
-        <p class="note">{% if paso_codigo %}El código no se muestra en esta página: debe entregártelo el administrador.{% else %}Después de enviar tus datos, necesitarás el código institucional docente.{% endif %}</p>
+        <p class="note">El código vence en 10 minutos y solo se puede usar una vez.</p>
         <a class="back" href="{% url 'login' %}">← Volver al inicio de sesión</a>
     </main>
 </body>

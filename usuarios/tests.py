@@ -1,8 +1,13 @@
+import re
+from datetime import timedelta
+
+from django.core import mail
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import CodigoRegistroDocente, Perfil, RegistroDocentePendiente
 
@@ -88,8 +93,10 @@ class AccesoPanelesTests(TestCase):
 		self.assertEqual(respuesta.status_code, 403)
 
 
-@override_settings(DOCENTE_REGISTRATION_CODE='CodigoDocente-2026')
-class RegistroDocenteDirectoTests(TestCase):
+@override_settings(
+	EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+)
+class RegistroDocenteVerificadoTests(TestCase):
 	def datos_registro(self):
 		return {
 			'username': 'docente_nuevo',
@@ -100,20 +107,38 @@ class RegistroDocenteDirectoTests(TestCase):
 			'password2': 'F0r-Teacher!Secure-99',
 		}
 
-	def test_registro_docente_crea_cuenta_y_perfil_inmediatamente(self):
+	def iniciar_registro(self):
 		respuesta = self.client.post(
 			reverse('registro_docente'),
 			self.datos_registro(),
 		)
-		self.assertContains(respuesta, 'Tus datos fueron recibidos')
-		respuesta = self.client.post(
-			reverse('registro_docente'),
-			{'codigo_docente': 'CodigoDocente-2026'},
-			follow=True,
+		pendiente = RegistroDocentePendiente.objects.get(
+			username='docente_nuevo',
+		)
+		codigo = re.search(r'\b(\d{6})\b', mail.outbox[-1].body).group(1)
+		return respuesta, pendiente, codigo
+
+	def test_registro_docente_solo_crea_cuenta_tras_verificar_correo(self):
+		respuesta, pendiente, codigo = self.iniciar_registro()
+
+		self.assertRedirects(
+			respuesta,
+			reverse('verificar_registro_docente', args=[pendiente.pk]),
+		)
+		self.assertEqual(mail.outbox[-1].to, ['docente.nuevo@example.com'])
+		self.assertFalse(User.objects.filter(username='docente_nuevo').exists())
+		self.assertNotEqual(pendiente.codigo_hash, codigo)
+		self.assertNotEqual(
+			pendiente.password_hash,
+			self.datos_registro()['password1'],
 		)
 
-		self.assertEqual(respuesta.status_code, 200)
-		self.assertContains(respuesta, 'Cuenta docente creada correctamente')
+		respuesta = self.client.post(
+			reverse('verificar_registro_docente', args=[pendiente.pk]),
+			{'codigo': codigo},
+		)
+
+		self.assertRedirects(respuesta, reverse('login'))
 		usuario = User.objects.get(username='docente_nuevo')
 		self.assertTrue(usuario.check_password(self.datos_registro()['password1']))
 		self.assertEqual(usuario.perfil.rol, 'DOCENTE')
@@ -121,74 +146,64 @@ class RegistroDocenteDirectoTests(TestCase):
 			RegistroDocentePendiente.objects.filter(username='docente_nuevo').exists()
 		)
 
-	def test_registro_docente_acepta_email_vacio(self):
+	def test_registro_docente_requiere_correo(self):
 		datos = self.datos_registro()
 		datos.pop('email')
 
 		respuesta = self.client.post(reverse('registro_docente'), datos)
-		self.assertContains(respuesta, 'Tus datos fueron recibidos')
-		respuesta = self.client.post(
-			reverse('registro_docente'),
-			{'codigo_docente': 'CodigoDocente-2026'},
-		)
-
-		self.assertRedirects(respuesta, reverse('login'))
-		self.assertEqual(User.objects.get(username='docente_nuevo').email, '')
+		self.assertEqual(respuesta.status_code, 200)
+		self.assertContains(respuesta, 'This field is required.')
+		self.assertFalse(User.objects.filter(username='docente_nuevo').exists())
 
 	def test_codigo_invalido_no_crea_cuenta(self):
-		datos = self.datos_registro()
-
-		respuesta = self.client.post(reverse('registro_docente'), datos)
-		self.assertContains(respuesta, 'Tus datos fueron recibidos')
+		_, pendiente, _ = self.iniciar_registro()
 		respuesta = self.client.post(
-			reverse('registro_docente'),
-			{'codigo_docente': 'codigo-incorrecto'},
+			reverse('verificar_registro_docente', args=[pendiente.pk]),
+			{'codigo': '000000'},
 		)
 
 		self.assertEqual(respuesta.status_code, 200)
-		self.assertContains(respuesta, 'El código institucional docente no es válido.')
-		self.assertFalse(User.objects.filter(username='docente_nuevo').exists())
-		self.assertFalse(Perfil.objects.filter(rol='DOCENTE').exists())
-
-	@override_settings(DOCENTE_REGISTRATION_CODE='')
-	def test_codigo_ausente_en_configuracion_bloquea_registro(self):
-		respuesta = self.client.post(
-			reverse('registro_docente'),
-			self.datos_registro(),
-		)
-		self.assertContains(respuesta, 'Tus datos fueron recibidos')
-		respuesta = self.client.post(
-			reverse('registro_docente'),
-			{'codigo_docente': 'CodigoDocente-2026'},
-		)
-
-		self.assertEqual(respuesta.status_code, 200)
-		self.assertContains(respuesta, 'El código institucional docente no es válido.')
+		self.assertContains(respuesta, 'El código no es correcto.')
 		self.assertFalse(User.objects.filter(username='docente_nuevo').exists())
 
-	def test_registro_siempre_asigna_rol_docente_y_no_altera_estudiante(self):
-		estudiante = User.objects.create_user(
-			username='estudiante_existente',
-			password='Clave-segura-123',
-		)
-		Perfil.objects.create(usuario=estudiante, rol='ESTUDIANTE')
+	def test_codigo_vencido_no_crea_cuenta(self):
+		_, pendiente, _ = self.iniciar_registro()
+		pendiente.expira_en = timezone.now() - timedelta(seconds=1)
+		pendiente.save(update_fields=['expira_en'])
 
-		respuesta = self.client.post(reverse('registro_docente'), self.datos_registro())
-		self.assertContains(respuesta, 'Tus datos fueron recibidos')
+		respuesta = self.client.get(
+			reverse('verificar_registro_docente', args=[pendiente.pk]),
+		)
+
+		self.assertContains(respuesta, 'El código venció')
+		self.assertFalse(User.objects.filter(username='docente_nuevo').exists())
+
+	def test_quinto_codigo_incorrecto_bloquea_verificacion(self):
+		_, pendiente, _ = self.iniciar_registro()
+		url = reverse('verificar_registro_docente', args=[pendiente.pk])
+		for _ in range(5):
+			respuesta = self.client.post(url, {'codigo': '000000'})
+
+		self.assertContains(respuesta, 'Verificación bloqueada')
+		self.assertFalse(User.objects.filter(username='docente_nuevo').exists())
+
+	def test_no_envia_dos_codigos_mientras_hay_verificacion_vigente(self):
+		self.iniciar_registro()
 		respuesta = self.client.post(
 			reverse('registro_docente'),
-			{'codigo_docente': 'CodigoDocente-2026'},
+			{
+				**self.datos_registro(),
+				'username': 'docente_otro',
+			},
 		)
-
-		self.assertRedirects(respuesta, reverse('login'))
-		self.assertEqual(
-			User.objects.get(username='estudiante_existente').perfil.rol,
-			'ESTUDIANTE',
-		)
-		self.assertEqual(User.objects.get(username='docente_nuevo').perfil.rol, 'DOCENTE')
+		self.assertContains(respuesta, 'verificación pendiente')
+		self.assertEqual(len(mail.outbox), 1)
 
 
-@override_settings(DOCENTE_REGISTRATION_CODE='')
+@override_settings(
+	DOCENTE_REGISTRATION_CODE='',
+	EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+)
 class CodigoRegistroDocenteTests(TestCase):
 	def test_acceso_no_autorizado_redirige_al_login(self):
 		respuesta = self.client.get(reverse('gestionar_codigo_registro_docente'))
@@ -253,11 +268,13 @@ class CodigoRegistroDocenteTests(TestCase):
 				'password2': 'F0r-Teacher!Secure-99',
 			},
 		)
-		self.assertContains(registro, 'Tus datos fueron recibidos')
-		registro = client.post(
-			reverse('registro_docente'),
-			{'codigo_docente': codigo},
+		self.assertRedirects(
+			registro,
+			reverse(
+				'verificar_registro_docente',
+				args=[RegistroDocentePendiente.objects.get(
+					username='docente_generado',
+				).pk],
+			),
 		)
-
-		self.assertRedirects(registro, reverse('login'))
-		self.assertEqual(User.objects.get(username='docente_generado').perfil.rol, 'DOCENTE')
+		self.assertEqual(len(mail.outbox), 1)
