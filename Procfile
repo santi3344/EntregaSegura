@@ -1,1 +1,1 @@
-web: python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn EntregaSegura.wsgi:application --bind 0.0.0.0:$PORT
+web: python manage.py migrate --noinput --settings=EntregaSegura.production && python manage.py collectstatic --noinput --settings=EntregaSegura.production && gunicorn EntregaSegura.wsgi:application --bind 0.0.0.0:$PORT --env DJANGO_SETTINGS_MODULE=EntregaSegura.production
