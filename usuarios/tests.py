@@ -96,7 +96,6 @@ class RegistroDocenteDirectoTests(TestCase):
 			'first_name': 'Docente',
 			'last_name': 'Nuevo',
 			'email': 'docente.nuevo@example.com',
-			'codigo_docente': 'CodigoDocente-2026',
 			'password1': 'F0r-Teacher!Secure-99',
 			'password2': 'F0r-Teacher!Secure-99',
 		}
@@ -105,6 +104,11 @@ class RegistroDocenteDirectoTests(TestCase):
 		respuesta = self.client.post(
 			reverse('registro_docente'),
 			self.datos_registro(),
+		)
+		self.assertContains(respuesta, 'Tus datos fueron recibidos')
+		respuesta = self.client.post(
+			reverse('registro_docente'),
+			{'codigo_docente': 'CodigoDocente-2026'},
 			follow=True,
 		)
 
@@ -122,15 +126,24 @@ class RegistroDocenteDirectoTests(TestCase):
 		datos.pop('email')
 
 		respuesta = self.client.post(reverse('registro_docente'), datos)
+		self.assertContains(respuesta, 'Tus datos fueron recibidos')
+		respuesta = self.client.post(
+			reverse('registro_docente'),
+			{'codigo_docente': 'CodigoDocente-2026'},
+		)
 
 		self.assertRedirects(respuesta, reverse('login'))
 		self.assertEqual(User.objects.get(username='docente_nuevo').email, '')
 
 	def test_codigo_invalido_no_crea_cuenta(self):
 		datos = self.datos_registro()
-		datos['codigo_docente'] = 'codigo-incorrecto'
 
 		respuesta = self.client.post(reverse('registro_docente'), datos)
+		self.assertContains(respuesta, 'Tus datos fueron recibidos')
+		respuesta = self.client.post(
+			reverse('registro_docente'),
+			{'codigo_docente': 'codigo-incorrecto'},
+		)
 
 		self.assertEqual(respuesta.status_code, 200)
 		self.assertContains(respuesta, 'El código institucional docente no es válido.')
@@ -142,6 +155,11 @@ class RegistroDocenteDirectoTests(TestCase):
 		respuesta = self.client.post(
 			reverse('registro_docente'),
 			self.datos_registro(),
+		)
+		self.assertContains(respuesta, 'Tus datos fueron recibidos')
+		respuesta = self.client.post(
+			reverse('registro_docente'),
+			{'codigo_docente': 'CodigoDocente-2026'},
 		)
 
 		self.assertEqual(respuesta.status_code, 200)
@@ -156,6 +174,11 @@ class RegistroDocenteDirectoTests(TestCase):
 		Perfil.objects.create(usuario=estudiante, rol='ESTUDIANTE')
 
 		respuesta = self.client.post(reverse('registro_docente'), self.datos_registro())
+		self.assertContains(respuesta, 'Tus datos fueron recibidos')
+		respuesta = self.client.post(
+			reverse('registro_docente'),
+			{'codigo_docente': 'CodigoDocente-2026'},
+		)
 
 		self.assertRedirects(respuesta, reverse('login'))
 		self.assertEqual(
@@ -218,17 +241,22 @@ class CodigoRegistroDocenteTests(TestCase):
 		)
 		codigo = respuesta_generacion.context['codigo_generado']
 
-		registro = Client().post(
+		client = Client()
+		registro = client.post(
 			reverse('registro_docente'),
 			{
 				'username': 'docente_generado',
 				'first_name': 'Docente',
 				'last_name': 'Generado',
 				'email': 'generado@example.com',
-				'codigo_docente': codigo,
 				'password1': 'F0r-Teacher!Secure-99',
 				'password2': 'F0r-Teacher!Secure-99',
 			},
+		)
+		self.assertContains(registro, 'Tus datos fueron recibidos')
+		registro = client.post(
+			reverse('registro_docente'),
+			{'codigo_docente': codigo},
 		)
 
 		self.assertRedirects(registro, reverse('login'))

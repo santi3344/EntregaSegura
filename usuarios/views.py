@@ -16,7 +16,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 
 from cursos.models import Curso, Grupo
 
-from .forms import RegistroDocenteForm
+from .forms import CodigoRegistroDocenteForm, RegistroDocenteForm
 from .models import CodigoRegistroDocente, Perfil, RegistroDocentePendiente
 
 
@@ -100,43 +100,101 @@ def registro_docente(request):
     if request.user.is_authenticated:
         return redireccionar_por_rol(request.user)
 
-    form = RegistroDocenteForm(request.POST or None)
-    if request.method == 'POST' and form.is_valid():
-        codigo_proporcionado = form.cleaned_data['codigo_docente']
-        codigo_db = CodigoRegistroDocente.objects.filter(clave='docente').first()
-        codigo_valido = (
-            codigo_db is not None
-            and check_password(codigo_proporcionado, codigo_db.codigo_hash)
-        )
-        if codigo_db is None:
-            codigo_configurado = getattr(settings, 'DOCENTE_REGISTRATION_CODE', '')
-            codigo_valido = bool(codigo_configurado) and secrets.compare_digest(
-                codigo_proporcionado,
-                codigo_configurado,
+    pendiente_id = request.session.get('registro_docente_pendiente')
+    pendiente = None
+    if pendiente_id:
+        pendiente = RegistroDocentePendiente.objects.filter(
+            pk=pendiente_id,
+            expira_en__gt=timezone.now(),
+        ).first()
+        if pendiente is None:
+            request.session.pop('registro_docente_pendiente', None)
+
+    if request.method == 'POST' and pendiente is None:
+        form = RegistroDocenteForm(request.POST)
+        if form.is_valid():
+            usuario = form.save(commit=False)
+            pendiente = RegistroDocentePendiente.objects.create(
+                username=usuario.username,
+                email=usuario.email,
+                first_name=usuario.first_name,
+                last_name=usuario.last_name,
+                password_hash=make_password(form.cleaned_data['password1']),
+                codigo_hash=make_password(secrets.token_urlsafe(24)),
+                expira_en=timezone.now() + timedelta(minutes=15),
             )
-        if not codigo_valido:
+            request.session['registro_docente_pendiente'] = str(pendiente.pk)
             return render(request, 'usuarios/registro_docente.html', {
+                'codigo_form': CodigoRegistroDocenteForm(),
                 'form': form,
-                'error': 'El código institucional docente no es válido.',
+                'paso_codigo': True,
             })
+    elif pendiente is not None:
+        form = RegistroDocenteForm()
+        codigo_form = CodigoRegistroDocenteForm(request.POST or None)
+        if request.method == 'POST' and codigo_form.is_valid():
+            codigo_proporcionado = codigo_form.cleaned_data['codigo_docente']
+            codigo_db = CodigoRegistroDocente.objects.filter(clave='docente').first()
+            codigo_valido = (
+                codigo_db is not None
+                and check_password(codigo_proporcionado, codigo_db.codigo_hash)
+            )
+            if codigo_db is None:
+                codigo_configurado = getattr(settings, 'DOCENTE_REGISTRATION_CODE', '')
+                codigo_valido = bool(codigo_configurado) and secrets.compare_digest(
+                    codigo_proporcionado,
+                    codigo_configurado,
+                )
+            if not codigo_valido:
+                codigo_form.add_error(
+                    'codigo_docente',
+                    'El código institucional docente no es válido.',
+                )
+                return render(request, 'usuarios/registro_docente.html', {
+                    'codigo_form': codigo_form,
+                    'form': form,
+                    'paso_codigo': True,
+                })
 
-        try:
-            with transaction.atomic():
-                usuario = form.save(commit=False)
-                usuario.save()
-                Perfil.objects.create(usuario=usuario, rol='DOCENTE')
-        except IntegrityError:
-            return render(request, 'usuarios/registro_docente.html', {
-                'form': form,
-                'error': 'No se pudo completar el registro. Inténtalo nuevamente.',
-            })
+            try:
+                with transaction.atomic():
+                    pendiente = RegistroDocentePendiente.objects.select_for_update().get(
+                        pk=pendiente.pk,
+                    )
+                    usuario = User(
+                        username=pendiente.username,
+                        email=pendiente.email,
+                        first_name=pendiente.first_name,
+                        last_name=pendiente.last_name,
+                        password=pendiente.password_hash,
+                    )
+                    usuario.save()
+                    Perfil.objects.create(usuario=usuario, rol='DOCENTE')
+                    pendiente.delete()
+            except (IntegrityError, RegistroDocentePendiente.DoesNotExist):
+                request.session.pop('registro_docente_pendiente', None)
+                return render(request, 'usuarios/registro_docente.html', {
+                    'form': form,
+                    'error': 'No se pudo completar el registro. Inicia el proceso nuevamente.',
+                })
 
-        messages.success(
-            request,
-            'Cuenta docente creada correctamente. Ya puedes iniciar sesión.',
-        )
-        return redirect('login')
+            request.session.pop('registro_docente_pendiente', None)
+            messages.success(
+                request,
+                'Cuenta docente creada correctamente. Ya puedes iniciar sesión.',
+            )
+            return redirect('login')
 
+        return render(request, 'usuarios/registro_docente.html', {
+            'codigo_form': codigo_form,
+            'form': form,
+            'paso_codigo': True,
+        })
+
+    if request.method == 'POST' and not form.is_valid():
+        return render(request, 'usuarios/registro_docente.html', {'form': form})
+
+    form = RegistroDocenteForm()
     return render(request, 'usuarios/registro_docente.html', {'form': form})
 
 

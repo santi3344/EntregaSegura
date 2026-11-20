@@ -10,13 +10,6 @@ class RegistroDocenteForm(UserCreationForm):
     )
     first_name = forms.CharField(label='Nombre', max_length=150)
     last_name = forms.CharField(label='Apellidos', max_length=150)
-    codigo_docente = forms.CharField(
-        label='Código institucional docente',
-        max_length=128,
-        strip=False,
-        widget=forms.PasswordInput,
-    )
-
     class Meta:
         model = User
         fields = (
@@ -24,7 +17,6 @@ class RegistroDocenteForm(UserCreationForm):
             'first_name',
             'last_name',
             'email',
-            'codigo_docente',
         )
         labels = {'username': 'Nombre de usuario'}
 
@@ -53,6 +45,15 @@ class RegistroDocenteForm(UserCreationForm):
         if any(ord(char) < 32 for char in value):
             raise forms.ValidationError('El nombre contiene caracteres inválidos.')
         return value
+
+
+class CodigoRegistroDocenteForm(forms.Form):
+    codigo_docente = forms.CharField(
+        label='Código institucional docente',
+        max_length=128,
+        strip=False,
+        widget=forms.PasswordInput,
+    )
 
 
     def clean_last_name(self):
