@@ -20,22 +20,6 @@ from .models import Perfil, RegistroDocentePendiente
 
 
 def enviar_codigo_verificacion(usuario, codigo):
-    twilio_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', '')
-    twilio_token = getattr(settings, 'TWILIO_AUTH_TOKEN', '')
-    twilio_from = getattr(settings, 'TWILIO_FROM_NUMBER', '')
-    if twilio_sid and twilio_token and twilio_from:
-        from twilio.rest import Client
-
-        Client(twilio_sid, twilio_token).messages.create(
-            body=(
-                f'EntregaSegura: tu código de verificación es {codigo}. '
-                'Vence en 10 minutos.'
-            ),
-            from_=twilio_from,
-            to=usuario.telefono,
-        )
-        return
-
     send_mail(
         subject='Código de verificación de EntregaSegura',
         message=(
@@ -136,7 +120,6 @@ def registro_docente(request):
         pendiente = RegistroDocentePendiente.objects.create(
             username=usuario.username,
             email=usuario.email,
-            telefono=form.cleaned_data['telefono'],
             first_name=usuario.first_name,
             last_name=usuario.last_name,
             password_hash=usuario.password,
@@ -191,7 +174,7 @@ def verificar_registro_docente(request, registro_id):
                 return render(request, 'usuarios/verificar_registro_docente.html', {
                     'bloqueado': True,
                 })
-            error = 'El código no es correcto. Revisa tu celular e inténtalo de nuevo.'
+            error = 'El código no es correcto. Revisa tu correo e inténtalo de nuevo.'
         else:
             try:
                 with transaction.atomic():
@@ -229,7 +212,7 @@ def verificar_registro_docente(request, registro_id):
 
     return render(request, 'usuarios/verificar_registro_docente.html', {
         'error': error,
-        'telefono': pendiente.telefono,
+        'correo': pendiente.email,
         'registro_id': pendiente.pk,
     })
 

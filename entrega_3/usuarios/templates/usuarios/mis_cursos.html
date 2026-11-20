@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis cursos | EntregaSegura</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f4f7fb; color: #1f2937; font-family: "Segoe UI", Arial, sans-serif; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 18px max(22px, calc((100% - 1000px) / 2)); background: white; border-bottom: 1px solid #e5e7eb; }
+        a { color: #2563eb; text-decoration: none; font-weight: 600; }
+        main { width: min(1000px, calc(100% - 36px)); margin: 36px auto; }
+        h1 { margin: 0 0 8px; font-size: 28px; }
+        .muted { color: #64748b; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; margin-top: 22px; }
+        .card { padding: 23px; background: white; border: 1px solid #e5e7eb; border-radius: 15px; }
+        .card h2 { margin: 0 0 9px; font-size: 19px; }
+        .card p { margin: 0; line-height: 1.6; white-space: pre-wrap; }
+        .empty { margin-top: 22px; padding: 30px; text-align: center; color: #64748b; background: white; border: 1px solid #e5e7eb; border-radius: 15px; }
+    </style>
+</head>
+<body>
+    <header>
+        <strong>Entrega<span style="color:#2563eb">Segura</span></strong>
+        <a href="{% url 'panel_estudiante' %}">← Volver al panel</a>
+    </header>
+    <main>
+        <h1>Mis cursos</h1>
+        <div class="muted">Aquí aparecen solo los cursos de los grupos a los que perteneces.</div>
+        {% if cursos %}
+            <section class="cards">
+                {% for curso in cursos %}
+                    <article class="card">
+                        <h2>📚 {{ curso.nombre }}</h2>
+                        <p class="muted">{{ curso.descripcion|default:'Este curso no tiene descripción.' }}</p>
+                    </article>
+                {% endfor %}
+            </section>
+        {% else %}
+            <div class="empty">Aún no tienes cursos asignados. Consulta con tu docente.</div>
+        {% endif %}
+    </main>
+</body>
+</html>
